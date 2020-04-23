@@ -96,7 +96,7 @@ Formally, a POMDP is defined by the tuple $P = \langle \mathcal{S}, \mathcal{A},
     \sum_{o\in\mathcal{O}}P(z|s',a) = \sum_{o\in\mathcal{O}}Z(z,s', a) = 1
 \end{equation}
 
-The initial belief $b_0:\mathcal{S}\rightarrow [0, 1]$ is a continuous distribution of state $s$ and represents the belief/probability that the agent is in state $s$. Note that since the agent has to be in a state the summation of the belief of all states must be equal to one:
+The initial belief $b_0:\mathcal{S}\rightarrow [0, 1]$ is a distribution of state $s$ and represents belief/probability that the agent is in state $s$. Note that since the agent has to be in a state the summation of the belief of all states must be equal to one:
 \begin{equation}\label{eq:b0norm}
     \sum_{s\in\mathcal{S}} b_0(s)=1.
 \end{equation}

@@ -19,7 +19,7 @@ At first glance the above assumptions may seem too restricting for a real-world 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{POMDP Agent}\label{sec:POMDPagent}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\subsection{System Architecture}
+\subsection{System Architecture}\label{subsec:sysarch}
 \begin{itemize}
     \item receeding horizon solving
     \item figure with 3 level architecture 
@@ -42,7 +42,7 @@ The state $s$ is represented as a vector of size $m+1$ with one variable describ
     |\mathcal{S}| &= N(N+2)^m \end{aligned}
 \end{equation}
 Since the object search and delivery task has a defined and observable goal, a set of terminal states can be constructed. A state is a terminal state, iff\footnote{if and only if} all item variables take the value \texttt{goal}
-\begin{equation}
+\begin{equation}\label{eq:s_t}
     \mathcal{S}_t = \{s=\begin{pmatrix} x_a & x_1 & \cdots & x_m \end{pmatrix}^T | x_a\in \{n_0, \cdots, n_N\}, x_1=\ldots=x_m=\texttt{goal}\}
 \end{equation}
 \subsubsection{Action Space $\mathcal{A}$}
@@ -246,8 +246,29 @@ Similarly, there is a positive reward $r_\text{delivery}$ for delivering an item
 
 
 \subsubsection{Initial Belief $b_0$}
-\subsubsection{Discount Factor $\gamma$}
+The initial belief $b_0(s)$ is a distribution that defines the probability for each value of the partially observable variables in state $s$. Since the belief grid (see subsection \ref{subsec:sysarch}) considers the items independent of each other, the belief can be expressed as multiplication of the belief $b_0(x_k)$ of each item
+\begin{equation}
+    b_0(s) = \prod_{1\leq k \leq m} b_0(x_k).
+\end{equation}
 
+The belief $b_0(x_k)$ of item $k$ can be represented as a vector where each element corresponds to a probability of an item value 
+\begin{equation}
+    b_0(x_k) = \begin{pmatrix} b_0(x_k=n_0) & \cdots & b_0(x_k=n_N) & b_0(x_k=\texttt{agent}) & b_0(x_k=\texttt{goal}) \end{pmatrix}^\intercal.
+\end{equation}
+
+To calculate the probability that the item is in node $n_i$, the cells $\mathcal{C}(n_i)$ of the belief grid that lie within $n_i$ are aggregated
+
+\begin{equation}
+b_0\left(x_k=n_i\right) = \sum_{j\in \mathcal{C}(n_i)}\texttt{belief\_grid[$j$]}.
+\end{equation}
+
+Note that item value \texttt{agent} and \texttt{goal} are observable values and the initial belief is therefore either one if the item is on the agent or already got delivered and zero otherwise. 
+
+\subsubsection{Discount Factor $\gamma$}
+Discounting can be used to value future rewards less than current ones and is required for some solving methods like Sarsop (see subsection \ref{subsec:SARSOP}). Since the goal of this object search and delivery problem is to minimize the total time, the discounting factor is chosen close to one:
+\begin{equation}
+    \gamma = 0.999
+\end{equation}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{Subroutines}\label{subsec:subroutine}
@@ -258,7 +279,7 @@ Similarly, there is a positive reward $r_\text{delivery}$ for delivering an item
     \item \texttt{release}
 \end{itemize}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\subsection{Assumptions and Extensions}¨
+\subsection{Assumptions and Extensions}
 \begin{itemize}
     \item Dynamic Environment
     \item Furniture
