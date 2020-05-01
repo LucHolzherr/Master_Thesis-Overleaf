@@ -101,10 +101,12 @@ The initial belief $b_0:\mathcal{S}\rightarrow [0, 1]$ is a distribution of stat
     \sum_{s\in\mathcal{S}} b_0(s)=1.
 \end{equation}
 The initial belief $b_0(s)$ can be propagated to the next time step using the transition and observation model. The belief $b'(s')$ of being in state $s'$ after making observation $o$ and choosing action $a$, given the belief $b(s)$ of the current time step can be formalized as
-\begin{align}\label{eq:bdash}
+\begin{equation}\label{eq:bdash}
+    \begin{split} 
     b'(s') &= \eta \cdot p(o|s', a)\cdot \sum_{s\in\mathcal{S}}p(s'|s,a)\cdot b(s) \\
     &=\eta \cdot Z(o,s',a)\cdot \sum_{s\in\mathcal{S}}T(s,a,s')\cdot b(s)
-\end{align}
+    \end{split}
+\end{equation}
 where $\eta$ is the normalization constant, s.t. equation \ref{eq:b0norm} holds.\\
 The Bellman equation can be formalized similarly to the MDP case (equation \ref{eq:BE}) by defining the value function on beliefs instead of states and taking possible observations into account. For this purpose the probability of observing $o$ after choosing $a$ in belief $b$ is derived:
 \begin{align}

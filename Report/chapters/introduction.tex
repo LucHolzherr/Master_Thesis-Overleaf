@@ -3,8 +3,18 @@
 %\chapter{Einleitung}
 %\label{sec:einleitung}
 
-Hier kommt die Einleitung
-\section{Motivation}
+In the scope of this master thesis a robotic object search and delivery problem is studied and different solving methods evaluated. Object search problems are interesting for academia as the agent has to perform reasoning with incomplete information in a real environment with large state, action and observation space. A possible future application of the studied methods is a service robot that autonomously serves coffee in a restaurant or an office.  \\
+
+The task takes place in a known indoor environment and involves multiple items. The agent is given prior knowledge about the item locations which it should use to find and deliver the items in as little time as possible. A low fidelity simulation was created from scratch to develop, test and compare different methodological approaches. The task is modelled as a partially observable Markov decision process (POMDP). Solving POMDPs is computationally demanding and intractable for large problems. To decrease the computational burden a novel hierarchical Multi-Scale POMDP framework was developed that can solve object search and delivery tasks in a large office environment. Three different Multi-Scale agents are presented and their performance is compared in simulation.\\
+
+The Multi-Scale POMDP approach presented is not bound to object search and delivery tasks only. Any (PO)MDP problem where the state space includes discretised physical space could be adapted to the MultiScale framework. 
+
+
+
 \section{Thesis Overview}
-blabla
-\section{Related Work}
+The thesis is structured into five chapters. In section \ref{sec:relatedwork} related work in the field of hierarchical POMDP models and object search methods are presented. The next chapter covers the underlying concepts of (partially observable) Markov decision processes which build the foundation of this thesis. In chapter \ref{sec:object_search} the object search methods explored in this thesis are discussed in more details. Chapter \ref{sec:results} presents the conducted experiments and gives a quantitative evaluation regarding computation speed and solution quality of the proposed methods. Finally, chapter \ref{sec:conclusion} summarizes the main findings and give an outlook for further research on Multi-Scale POMDPs. 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+\section{Related Work}\label{sec:relatedwork}
+bliblablub

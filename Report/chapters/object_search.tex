@@ -1,10 +1,10 @@
 \chapter{Object-Search Methods}
 \label{sec:object_search}
-In this chapter different methods for object search and delivery tasks are presented. The agent has to perform a search and delivery task in a closed environment involving multiple items and with prior uncertain knowledge about the items location. First, a more formal problem definition is given in \ref{sec:problemdef} and the underlying assumptions are discussed. In section \ref{sec:baseline} a greedy next-best-view algorithm is described which serves as the baseline for the POMDP agents. Section \ref{sec:POMDPagent} covers the \textcolor{red}{basic} POMDP agent and the underlying system architecture. Finally, in section \ref{sec:MultiScale} a novel MultiScale POMDP solving method is presented. The original POMDP structure is split into multiple layers of POMDPs with different spatial-resolutions. The problem is first solved in the lowest resolution POMDP and its solution is then refined in the lower layers. This solving method yields large speedups while still producing qualitative solutions.  
+In this chapter different methods for object search and delivery tasks are presented. The agent has to perform a search and delivery task in a closed environment involving multiple items and with prior uncertain knowledge about the items location. First, a more formal problem definition is given in \ref{sec:problemdef} and the underlying assumptions are discussed. In section \ref{sec:baseline} a greedy next-best-view algorithm is described which serves as the baseline for the POMDP agents. Section \ref{sec:POMDPagent} covers the \textcolor{red}{basic} POMDP agent and the underlying system architecture. Finally, in section \ref{sec:MultiScale} a novel MultiScale POMDP solving method is presented. The original POMDP structure is split into multiple POMDP problems with different spatial-resolutions. The problem is first solved in the lowest resolution POMDP and its solution is then refined in the successive POMDPs. This solving method yields large speedups while still producing qualitative solutions.  
 
 \section{Problem Definition}\label{sec:problemdef}
 \textit{Problem statement:} 
-The agent's task is to find one or multiple items in an office environment with multiple rooms and deliver each item to a prior specified goal location in as little time as possible. A map of the static, closed environment is given and there are no furniture or other obstacles present. The items are therefore assumed to lie on the floor. The agent has \textit{prior knowledge} about the item locations in form of a probability distribution available. Their goal location is specified with coordinates. It is further assumed that only one item of each kind is present. Therefore, if the task is to find and deliver a mug, then there is only one mug in the environment. The agent modelled for this task a two-wheeled differential-drive robot shown in figure \ref{fig:robot} with a camera facing in the forward direction of the robot and a robotic arm manipulator mounted on top.\\
+The agent's task is to find one or multiple items in an office environment with multiple rooms and deliver each item to a prior specified goal location in as little time as possible. A map of the static, closed environment is given and there are no furniture or other obstacles present. The items are therefore assumed to lie on the floor. The agent has \textit{prior knowledge} about the item locations in form of a probability distribution available. Their goal location is specified with coordinates. It is further assumed that only one item of each kind is present. Therefore, if the task is to find and deliver a mug, then there is only one mug in the environment. The agent modelled for this task is a two-wheeled differential-drive robot shown in figure \ref{fig:robot} with a camera facing in the forward direction of the robot and a robotic arm manipulator mounted on top. The robot can only carry one item at a time.\\
 
 At first glance the above assumptions may seem too restricting for a real-world application. However, all methods presented in this chapter can be generalized to broader settings involving dynamic environments, furniture and multiple items of each kind as will be discussed in the respective sections. \textcolor{red}{figure of robot here}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -18,29 +18,78 @@ At first glance the above assumptions may seem too restricting for a real-world 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{POMDP Agent}\label{sec:POMDPagent}
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{System Architecture}\label{subsec:sysarch}
-\begin{itemize}
-    \item receeding horizon solving
-    \item figure with 3 level architecture 
-    \item synchronicity figure
-    \item grid, nodes, belief grid
-\end{itemize}
-\subsubsection{Grid}
-\subsubsection{Nodes}
-\subsubsection{Belief Grid}
+\begin{figure}
+    \centering
+    \includegraphics[width=1.0\textwidth]{Report/images/3LevelArchitecture_botha.png}
+    \caption{Caption}
+    \label{fig:3levelsarchitecture}
+\end{figure}
+%
+The POMDP model is used as for high-level planning in the three level architecture shown in figure \ref{fig:3levelsarchitecture}. The lowest level collects measurements from the camera and the other sensors and controls the robot. During operation, the lowest level continuously collects measurements from the camera and other sensors used for state estimation and controls the robot. The measurement are processed at a lower frequency on the second level where the state and belief grid is updated. On the top level is the POMDP solver which computes high-level action $a$. Each action of the POMDP has a designated execution algorithm henceforth referred to as subroutine. Subroutines belong to the second level of the three layer architecture and are described in more detail in section \ref{subsec:subroutine}. The subroutine computes a desired reference for the agent and passes it to the lowest level, where it is processed by a feedback controller which moves the robot. Once a subroutine is started the program remains on the second and lowest level until the subroutine terminates according to its termination criteria (\textcolor{red}{REF TO LATER IN TEXT HERE)}. The POMDP on the third level is then solved again to produce the next action. This receding horizon procedure is preferred over a precomputed plan, which could fail or result in a suboptimal solution due to model inaccuracies. If the problem should be extended to a dynamic environment, receding horizon control becomes a necessity.\\
+
+The belief grid is an orthogonal high-resolution grid where each cell holds a belief value for each item in the task. Figure \ref{fig:belief_grid} shows the belief grid for the first item in an office environment with three rooms. In figure \ref{subfig:b_sc03} the initial belief of the problem is shown, where the agent did not make any measurements yet. During operation the belief grid is continuously updated with the camera measurements as shown in figure \ref{subfig:b_sc03_observed} where the observed area is colored in violet. Since the first item was not observed in those cells, the belief dropped.\\
+The update formula of the belief grid for item $k$ is different for the case where the item was observed and the case where it was not observed. If the item was observed since the last update the belief value of the cell where the item was observed is multiplied by the "object recognition rate" $orr<1$, which takes into account that the object recognition algorithm could wrongly recognize the item even if it not present. For all other cells the belief value is multiplied by one minus $orr$. After all cells are updated, the belief grid is normalized such that the total belief sums to one. The belief values are lower bounded by $10^{-10}$ to avoid numerical rounding issues: 
+%
+\begin{multline}\label{eq:belief_grid1}
+    \texttt{belief\_grid[k, u, v]} =\\ 
+    \begin{cases} 
+        \eta \cdot orr \cdot \texttt{belief\_grid[k, u, v]} &\text{if item $k$ obs. in }c_\texttt{(u,v)}\\
+        \eta \cdot \max\left(10^{-10}, (1 - orr) \cdot \texttt{belief\_grid[k, u, v]}\right) &\text{otherwise}
+    \end{cases}
+\end{multline}
+% 
+where $c_\texttt{(u,v)}$ corresponds to the cell with indices \texttt{(u,v)} and $\eta$ is the normalization factor.
+If item $k$ was not spotted, the observed cell's belief value is multiplied by one minus $orr_2<1$, a constant that considers that the object recognition algorithm could fail to correctly recognize the item if it is present. All other belief values are multiplied by $orr_2$. 
+%
+\begin{multline}\label{eq:belief_grid2}
+    \texttt{belief\_grid[k, u, v]} =\\ 
+    \begin{cases} 
+        \eta \cdot\max\left(10^{-10}, (1 -  orr_2) \cdot \texttt{belief\_grid[k, u, v]}\right) &\text{if }c_\texttt{(u,v)} \in \mathcal{C}_\text{obs}\\
+        \eta \cdot orr_2 \cdot \texttt{belief\_grid[k, u, v]} &\text{otherwise}
+    \end{cases}
+\end{multline}
+%
+where $\mathcal{C}_\text{obs}$ is the set of observed cell since the last belief grid update. Note that equations \ref{eq:belief_grid1} and \ref{eq:belief_grid2} are motivated by the belief update formula \ref{eq:bdash} for POMDPs where the transition model assumes that the item remains in the same cell and the observation model considers the object recognition algorithm with the variables $orr$ and $orr_2$. 
+%
+\begin{figure}
+    \centering
+    \begin{subfigure}[b]{0.48\textwidth}
+        \includegraphics[width=\textwidth]{Report/images/belief_sc03.png}
+        \caption{Caption}
+        \label{subfig:b_sc03}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[b]{0.48\textwidth}
+        \includegraphics[width=\textwidth]{Report/images/belief_sc03_observed.png}
+        \caption{Caption}
+        \label{subfig:b_sc03_observed}
+    \end{subfigure}
+    \caption{Caption}
+    \label{fig:belief_grid}
+\end{figure}
+%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{POMDP Model}
 \textcolor{red}{REFERENCE TO MASTER THESIS/PAPER THIS MODEL IS BASED ON}\\
-In this section the POMDP model\footnote{Note that the model presented here is - as is always the case in modelling - a simple approximation of the true system and its complexity is the solely the designers choice.} (see section \ref{sec:POMDP}) defined by the tuple $P = \langle \mathcal{S}, \mathcal{A}, \mathcal{O}, T, Z, R, b_0, \gamma \rangle$ is described for a search task involving $m$ items. The environment is divided into $N$ separate non-overlapping regions which from now on are called nodes. In figure \ref{fig:nodes} a small office environment with 3 rooms is showed which got partitioned into $N=9$ nodes $n_0$ to $n_8$. Note that the nodes can in principle have any shape and do not need to be rectangles.\textcolor{red}{NODES FIGURE HERE}\\
+In this section the POMDP model\footnote{Note that the model presented here is - as is always the case in modelling - a simple approximation of the true system and its complexity is the solely the designers choice.} (see section \ref{sec:POMDP}) defined by the tuple $P = \langle \mathcal{S}, \mathcal{A}, \mathcal{O}, T, Z, R, b_0, \gamma \rangle$ is described for a search task involving $m$ items. The environment is divided into $N$ separate non-overlapping regions which from now on are called nodes. In figure \ref{fig:nodes} a small office environment with 3 rooms is showed which got partitioned into $N=9$ nodes $n_0$ to $n_8$. Note that the nodes can in principle have any shape and do not need to be rectangles.
+\begin{figure}
+    \centering
+    \includegraphics[width=0.7\textwidth]{Report/images/envsmall_l2.png}
+    \caption{Caption}
+    \label{fig:nodes}
+\end{figure}
 \subsubsection{State Space $\mathcal{S}$}
 The state $s$ is represented as a vector of size $m+1$ with one variable describing the agents position and $m$ variables for the items. The agents position $x_a$ is modelled as fully observable and takes the different node numbers as values. Since the area of a node is chosen to take multiple square meters this modeling assumption is well justified. The item variable $x_k$ of item $k$ are partially observable, as their position is not known beforehand. In in addition to the node numbers $x_i$ takes the values \texttt{agent} when the item is on the agent and the value \texttt{goal} after it got delivered to its goal location.
-
+%%
 \begin{equation}
     s=\begin{pmatrix} x_a \\ x_1 \\ \vdots \\ x_m \end{pmatrix}, \qquad \begin{aligned} x_a&\in\{n_0, \cdots, n_N\},\\ 
     x_k &\in \{n_0, \cdots, n_N, \texttt{agent}, \texttt{goal}\}, \quad 1 \leq k \leq m \\
     |\mathcal{S}| &= N(N+2)^m \end{aligned}
 \end{equation}
+%%
 Since the object search and delivery task has a defined and observable goal, a set of terminal states can be constructed. A state is a terminal state, iff\footnote{if and only if} all item variables take the value \texttt{goal}
 \begin{equation}\label{eq:s_t}
     \mathcal{S}_t = \{s=\begin{pmatrix} x_a & x_1 & \cdots & x_m \end{pmatrix}^T | x_a\in \{n_0, \cdots, n_N\}, x_1=\ldots=x_m=\texttt{goal}\}
@@ -48,11 +97,11 @@ Since the object search and delivery task has a defined and observable goal, a s
 \subsubsection{Action Space $\mathcal{A}$}
 The action space consists of different navigation actions that navigate the agent in between nodes, a \texttt{look\_around} action that aims to observe the entire node the agent is currently in, one pickup action for each item and a \texttt{release} action to release the item the agent is carrying. A navigation action \texttt{nav($n_i, n_j$)} takes the agent from node $n_i$ to $n_j$ if he currently is in node $n_i$ and vice versa. Navigation actions are only available between two adjacent nodes. See figure \ref{fig:nodes_graph} where the nodegraph of the three-room environment and the navigation actions are visualized. Other choices for navigation actions that require less actions in total would be possible. An example for such alternative choice is one navigation action per node to navigate the agent to this node. However, the observation model $Z(o, s', a)$ only considers the next state $s'$, not the current state $s$. Clearly, the observation probability of observing an item when choosing a navigation action to node $n_j$ depends on the starting node and the path chosen. With the above choice of navigation action the starting node is implicitly given. Further, by only considering adjacent nodes, the set of possible paths in between the nodes is greatly reduced. This choice of navigation actions therefore allows accurate modelling of the observation function.\\
 The \texttt{pickup$k$} action tries to pick item $k$ in the current node the agent is in. Note that a specific pickup action for each item is required to allow the agent to reason which item to pickup if multiple items are in the same node. Since the agent can only carry one item at a time, one release action for all items suffices. 
-
+%%
 \begin{equation}
     \mathcal{A} = \{\texttt{nav($n_0, n_1$)}, \cdots, \texttt{look\_around}, \texttt{pickup$1$}, \cdots, \texttt{pickup$m$}, \texttt{release}\}
 \end{equation}
-
+%%
 \subsubsection{Observation Space $\mathcal{O}$}
 The observation $o$ is represented as a vector of size $m$, where each variable corresponds to an item. The observation $o_k$ takes the value \texttt{no} if item $k$ is not observed in this time step, $n_i$ if the item was observed in node $i$ and \texttt{agent} if the agent carries item $k$. If the item variable $x_k$ takes value \texttt{goal} the observation is always \texttt{no}.
 \begin{equation}
@@ -61,11 +110,13 @@ The observation $o$ is represented as a vector of size $m$, where each variable 
 \end{equation}
 \subsubsection{Transition Model $T$}
 The transition model $T(s, a, s')$ defines the probability that the agent transitions within one time step to state $s'$ after choosing action $a$ in state $s$. In this model, an entirely deterministic transition model is chosen, i.e. all entries are either one or zero. This implies that given state $s$ and action $a$, the next state $s'$ is perfectly known. Further, conditional independence between the state variables of the next state $s'$ given action $a$ and the current state $s$ is assumed. The transition function can therefore be calculated by multiplying the transition model for each state variable:
+%%
 \begin{equation}
     \left(x_a' \upmodels x_1' \upmodels \cdots \upmodels x_m' |a, s\right) \Rightarrow T(s,a,s') = T(s,a, x_a') \cdot T(s,a,x_1') \cdot \ldots \cdot T(s,a,x_m').
 \end{equation}
+%%
 This assumption reduces the number of entries in the transition model from \\$\left(N(N+2)\right)^2\cdot|\mathcal{A}|$ to $N(N+2)\cdot|\mathcal{A}|\cdot (N+(N+2)\cdot m)$. The transition function $T(s, a, x_a')$ is given in equations \ref{eq:Tnavxa} - \ref{eq:Tstxa}. Equation \ref{eq:Tnavxa} formalizes that the agent transitions from position $x_a=n_i$ to node $n_j$ and vice versa if the corresponding navigation action \texttt{nav($n_i,n_j$)} is chosen.
-
+%%
 \begin{equation}\label{eq:Tnavxa}
     T(s, a=\texttt{nav($n_i, n_j$)}, x_a') = \begin{cases}
              1 & \text{if }x_a=n_i \land x_a'=n_j\\
@@ -73,9 +124,9 @@ This assumption reduces the number of entries in the transition model from \\$\l
              0 & \text{otherwise}
          \end{cases}
 \end{equation}
-
+%%
 For the actions \texttt{look\_around}, \texttt{release} and pickup actions the agent remains in the same node: 
-
+%%
 \begin{equation}
     T(s,a\in\{\texttt{look\_around}, \texttt{pickup}1,\cdots,\texttt{pickup}m, \texttt{release}\}, x_a') = 
     \begin{cases}
@@ -83,35 +134,35 @@ For the actions \texttt{look\_around}, \texttt{release} and pickup actions the a
         0 & \text{otherwise}
     \end{cases}.
 \end{equation}
-
+%%
 Finally, if the current state is a terminal state $s_t$, the agent remains per definition in that terminal state
-
+%%
 \begin{equation}\label{eq:Tstxa}
     T(s\in\mathcal{S}_t, a, x_a') = \begin{cases}1 &\texttt{if }x_a'=x_a\\
          0& \texttt{otherwise}\end{cases}.
 \end{equation}
-
+%%
 The transition function $T(s, a, x_k')$ for item $k$ is defined in equations \ref{eq:Txkremain} - \ref{eq:Txkts}. For navigation actions and the \texttt{look\_around} action the items remain in the same state. The navigation action only affects variable $x_a$. If the agent is carrying item $k$, the item takes value \texttt{agent} which is unaffected by navigating. The \texttt{look\_around} action is used to search the current node for items, but does not directly affect the items.    
-
+%%
 \begin{equation}\label{eq:Txkremain}
     T(s, a=\in\{\texttt{nav($n_i, n_j$)},\texttt{look\_around}\}, x_k') = \begin{cases}
              1 & \text{if }x_k'=x_k\\
              0 & \text{otherwise}
          \end{cases}
 \end{equation}
-
+%%
 If the agent chooses the \texttt{pickup} action the item transitions to state \texttt{agent} given that the agent is not carrying an other item and is in the same node as the item currently is. Otherwise the item remains in the same state. Note that a deterministic pickup model is a strong simplification, as the pickup-subroutine (see subsection \ref{subsec:subroutine}) can fail even if $x_a=x_k$ since it's not guaranteed that the agent observes the item. \textcolor{red}{1 SENTENCE WHY THIS SIMPLIFICATION IS OK}
-
+%%
 \begin{equation}\label{eq:Txkpickup}
 T(s,a=\texttt{pickup}k, x_k') = \begin{cases}
-             1 & \text{if }x_a=x_k \land x_i\neq \texttt{agent}, 1\leq i\leq m \land x_k'=\texttt{agent} \\
+             1 & \text{if }x_a=x_k \land x_i\neq \texttt{agent} \land x_k'=\texttt{agent}, 1\leq i\leq m  \\
              1 & \text{if }x_a \neq x_k \land x_k=x_k' \\
              0 & \text{otherwise}
          \end{cases}
 \end{equation}
-
+%%
 Equation \ref{eq:Txkrelease} shows the transition model for the \texttt{release} action. If the agent is carrying item $k$ and is in the node where the goal location $g_k$ of item $k$ is located, then the item gets successfully delivered within this time step and takes value $\texttt{goal}$. If the release action is chosen in a different node the item is dropped at the agents current location and therefore takes a node value. Item $k$ is not affected by the \texttt{release} action in case the agent is not carrying item $k$.
-
+%%
 \begin{equation}\label{eq:Txkrelease}
     T(s,a=\texttt{release}, x_k') = \begin{cases}
              1 & \text{if }x_k =\texttt{agent} \land x_a = g_k \land x_k' = \texttt{goal} \\
@@ -120,35 +171,37 @@ Equation \ref{eq:Txkrelease} shows the transition model for the \texttt{release}
              0 & \text{otherwise} 
              \end{cases}
 \end{equation}
-
+%%
 The item $k$ is not allowed to change value if the current state is a terminal state.
-
+%%
 \begin{equation}\label{eq:Txkts}
     T(s\in\mathcal{S}_t, a, x_k') = \begin{cases}1 &\texttt{if }x_k=x_k'\\
          0& \texttt{otherwise}\end{cases}
 \end{equation}
-
-
+%%
 \subsubsection{Observation Model $Z$}
-The observation model $Z(o, s', a)$ represents the probability of observing observation $o$ given that the time step ends in state $s'$ after choosing action $a$. In this model conditinal independence between the observation variables $o_k$ is assumed, given $s'$ and $a$. The total observation function $Z(o, s', a)$ can therefore be written as the product of the individual observation functions $Z(o_k, s', a)$ which simplifies the design process and reduces the number of values.
-
+The observation model $Z(o, s', a)$ represents the probability of observing observation $o$ given that the time step ends in state $s'$ after choosing action $a$. In this model conditional independence between the observation variables $o_k$ is assumed, given $s'$ and $a$. \textcolor{red}{1 SENTENCE THAT THIS IS A SIMPLIFICATION, E.G. SALT AND PEPPER IS OFTEN RIGHT NEXT TO EACH OTHER.} The total observation function $Z(o, s', a)$ can be written as the product of the individual observation functions $Z(o_k, s', a)$ which simplifies the design process and reduces the number of values.
+%%
 \begin{equation}\label{eq:Ocondind}
     \left(o_1 \upmodels \cdots \upmodels o_m |s', a\right) \Rightarrow Z(o,s',a) = \prod_{1\leq k \leq m}Z(o_k,s',a)
 \end{equation}
-
-Equation \ref{eq:Onav} - \ref{eq:Orelease} show the observation function for item $k$ for the different actions the agent can choose. The probability of observing the item during a navigation action in node $n_u$ is approximated as the ratio between the expected observed area of node $n_u$ and the total area of node $n_u$. See figure \textcolor{red}{FIG REF HERE} for a visualization of the expected observed area. The ratio gets multiplied by the constant "object recognition rate", abbreviated as $orr$, which takes into account that the object recognition algorithm could fail to correctly recognize an item even if it is present. Note that this model does not consider which part of the area of the node is observed. If the agent were to execute the same navigation action a second time with the same starting end ending node, the observed area will be the same as in the first navigation action. The agent however would still expect to make new observations. This model inaccuracy could in the worst case lead to the agent driving back and forth between the same nodes in an attempt to observe the nodes. Since the algorithm is run in a receeding horizon fashion, this inaccuracy can be corrected for by setting the observation probability for a navigation action to zero if it was chosen in previous time steps.\\
+%%
+Equations \ref{eq:Onav} - \ref{eq:Orelease} show the observation function for item $k$ for the different actions the agent can choose. The probability of observing the item during a navigation action in node $n_u$ is approximated as the ratio between the expected observed area of node $n_u$ and the total area of node $n_u$. See figure \textcolor{red}{FIG REF HERE} for a visualization of the expected observed area. The ratio gets multiplied by the constant $orr_2$ (see equation \ref{eq:belief_grid2}). Note that this model does not consider which part of the area of the node is observed. If the agent were to execute the same navigation action a second time with the same starting end ending node, the observed area will be the same as in the first navigation action. The agent however would still expect to make new observations. This model inaccuracy could in the worst case lead to the agent driving back and forth between the same nodes in an attempt to observe the nodes. Since the algorithm is run in a receding horizon fashion, this inaccuracy can be corrected for by setting the observation probability for a navigation action to zero if it was chosen in previous time steps.\\
 The probability of not observing the item even tough it is present in node $n_u$ is given by one minus the probability of observing the item. If the agent carries the item after the action finished, the observation is always $\texttt{agent}$ independent of which action was chosen. Since an item that already got delivered must not longer be considered the observation of that item is assumed to be \texttt{no}. All other cases like that the object recognition algorithm wrongly observes item $k$ in a node where it is not present are neglected and set to zero probability. 
-
+%%
 \begin{equation}\label{eq:Onav}
-    Z(o_k, s', a=\texttt{nav($n_i, n_j$)}) = \begin{cases} orr \cdot \frac{\text{observed area of }n_u}{\text{area of }n_u} & \text{if }o_k=x_k'=n_u \\ 1 - orr \cdot \frac{\text{observed area of }n_u}{\text{area of }n_u} & \text{if } o_k=\texttt{no}\land x_k'=n_u\\
-    1 & \text{if }o_k=x_k'=\texttt{agent}\\
-    1 & \text{if }o_k=\texttt{no}\land x_k'=\texttt{goal}\\
-    0 & \text{otherwise}
+    Z(o_k, s', a=\texttt{nav($n_i, n_j$)}) = 
+    \begin{cases}
+        orr_2 \cdot \frac{\text{observed area of }n_u}{\text{area of }n_u} & \text{if }o_k=x_k'=n_u \\
+        1 - orr_2 \cdot \frac{\text{observed area of }n_u}{\text{area of }n_u} & \text{if } o_k=\texttt{no}\land x_k'=n_u\\
+        1 & \text{if }o_k=x_k'=\texttt{agent}\\
+        1 & \text{if }o_k=\texttt{no}\land x_k'=\texttt{goal}\\
+        0 & \text{otherwise}
     \end{cases}
 \end{equation}
-
+%%
 For the \texttt{look\_around} action the probability of observing the item in the current node is chosen as ninety percent. Consequently the probability of not observing the item is set to ten percent. The fact that the item could be observed in a different node than the one the agent is currently examining is neglected. 
-
+%%
 \begin{equation}\label{eq:lookaround}
     Z(o_k, s', a=\texttt{look\_around}) = \begin{cases}
     0.9& \text{if } o_k=x_a'=x_k'\\
@@ -157,9 +210,9 @@ For the \texttt{look\_around} action the probability of observing the item in th
     1& \text{if }o_k=\texttt{no}\land x_k'=\texttt{goal}
     \\0 &\text{otherwise} \end{cases}
 \end{equation}
-
-A pickup action is assumed to always succeed if the agent observes the item in the current node and to fail otherwise. The probability of observing \texttt{no} is therefore one if the agent is not carrying the item after the action is finished. If the action succeeds the item is on the agent and the observation is \texttt{agent}. 
-
+%%
+A pickup action is assumed to always succeed if the agent observes the item in the current node and to fail otherwise. The probability of observing \texttt{no} is therefore one if the agent is not carrying the item after the action is finished. If the action succeeds the item is on the agent and the observation is \texttt{agent}.
+%%
 \begin{equation}\label{eq:pickup}
     Z(o_k, s', a=\texttt{pickup}k) = \begin{cases}
     1 &\text{if } o_k=\texttt{no} \land x_k'\neq \texttt{agent}\\
@@ -167,22 +220,22 @@ A pickup action is assumed to always succeed if the agent observes the item in t
     1& \text{if }o_k=\texttt{no}\land x_k'=\texttt{goal}
     \\0 &\text{otherwise} \end{cases}
 \end{equation}
-
+%%
 If the agent carries item $k$ and chooses the release action the next item state is already known. No informative observation is needed. Therefore the probability of observing \texttt{no} is set to one. The probability of observing a different item during releasing item $k$ is neglected. Since releasing an item for the sake of observing a different item is most likely not a time-efficient behaviour this simplification is well justified. Similarly, the probability of observing item $k$ during the pickup action of item $i$ where $k\neq i$ is assumed to be zero. 
-
+%%
 \begin{equation}\label{eq:Orelease}
     Z(o_k, s', a\in\{\text{pickup}i, \texttt{release}\}) = \begin{cases}
     1& \text{if } o_k=\texttt{no}\\
     0& \text{otherwise}\end{cases}
 \end{equation}
-
-
+%%
 \subsubsection{Reward Model $R$}
 Reward models are used to capture the goals of the task the agent should solve. The goal of this object search and delivery problem is to find the items and deliver them to their target locations in as little time as possible. The reward function used for this task can be split into a time penalty $R_\text{time}$, a reward  $R_\text{subtask}$ for picking an item up and a reward $R_\text{task}$ for delivering an item to its target location. The time penalty makes sure that the optimal policy of the POMDP minimizes the expected completion time of the deliveries, while the subtask and task reward guide the solver towards the right solution. 
-
+%%
 \begin{equation}
     R = R_{\text{time}} + R_{\text{subtask}} + R_{\text{task}} 
 \end{equation}
+%%
 Execution times of the actions in the POMDP differ and are not previously known, since they are high-level actions that are processed by their designated subroutine. The run-time of the subroutines depend on the specific agent location, item positions and the current state of the belief grid. Modelling $R\text{time}$ requires approximating these execution times, either through a simulation using sampling to get robust averaged values or by using a heuristic. In the implementation of this model the simulation approach was used.\\
 The expected run-time of the navigation function is given by $t_\texttt{nav}(n_i, n_j)$ where $n_i$ is the start node and $n_j$ the target node. To avoid that the agent picks a navigation action that is not available in the current agents position, a high negative reward is given for 
 \begin{equation}
@@ -193,14 +246,14 @@ The expected run-time of the navigation function is given by $t_\texttt{nav}(n_i
     \end{cases}
 \end{equation}
 The expected time $t_\texttt{l.a}$ of the \texttt{look\_around} action is node-dependent since nodes usually have different shapes and sizes. Further, $t_\texttt{l.a}$ differs dependent on if an item is present or not as is explained in subsection \ref{subsec:subroutine}. 
-
+%%
 \begin{multline}
     R_\text{time}(s, a=\texttt{look\_around}) = \\\begin{cases}
     -t_\texttt{l.a}(n_i, \texttt{item\_present=True}) & \text{if }x_a=n_i \land x_k=n_i, \quad 1\leq k \leq m\\
     -t_\texttt{l.a}(n_i, \texttt{item\_present=False}) & \text{if }x_a=n_i \land x_k \neq n_i,\quad  1\leq k \leq m
     \end{cases}
 \end{multline}
-
+%%
 For the pickup action  the same considerations as for the \texttt{look\_around} action are made. The time penalty $R_\text{time}$ is given by
 \begin{multline}
     R_\text{time}(s, a=\texttt{pickup}k) = \\ \begin{cases}
@@ -208,7 +261,7 @@ For the pickup action  the same considerations as for the \texttt{look\_around} 
     -t_\texttt{pickup}(n_i, \texttt{item\_present=False}) & \text{if }x_a=n_i \land x_k \neq n_i,\quad  1\leq k \leq m
     \end{cases}.
 \end{multline}
-
+%%
 \textcolor{red}{IF TIME: SPECIFY HOW THE EXPECTED TIME FOR THE PICKUP ACTION IS CALCULATED}
 % Note that the choice of $t_\texttt{pickup}(n_i, \texttt{item\_present=False})$ can be critical for a good performance. Ideally, the agent chooses the \texttt{look\_around} action if it isn't sure if the item is present. If the item is then observed a pickup action with expected time $t_\texttt{pickup}(n_i, \texttt{item\_present=True})$ should be chosen. If $t_\texttt{pickup}(n_i, \texttt{item\_present=False})$ is chosen too low, the agent will always choose the pickup action instead of the \texttt{look\_around} action, which yields bad performance as the pickup subroutine is not made for exploration. 
 
@@ -219,6 +272,7 @@ For the pickup action  the same considerations as for the \texttt{look\_around} 
 % \end{multline}
 
 Finally, for the release action the expected execution time differs dependent upon if agent releases item $k$ in the goal node or not. In the goal node the agent first has to drive to the goal coordinates, while in any other node the item is dropped at the current agents location. 
+%%
 \begin{equation}
      R_\text{time}(s, a=\texttt{release}) = \begin{cases}
     -t_\texttt{release\_goal}(n_i) & \text{if }x_a=g_k \land x_k=\texttt{agent}, \quad 1 \leq k \leq m \\
@@ -226,25 +280,24 @@ Finally, for the release action the expected execution time differs dependent up
     0 & \text{if }x_k \neq \texttt{agent}, \quad 1 \leq k \leq m
     \end{cases}
 \end{equation}
-
+%%
 The agent receives a positive reward $r_\text{pickup}$ for successfully picking an item up. When the agent releases the item in a later time step the same reward must be subtracted. Without the negative reward for releasing an item, the agent would choose to pick an item up and release it right afterwards in an infinite loop to gather the subtask reward. Note that $R_\text{subtask}(s,a,s')$ is written as a function of the current state $s$, action $a$ and the next state $s'$. Indeed, all the equations in chapter \ref{chap:probabilistic} can be adapted without further adjustments to a reward model that is a function of $s'$ as well. 
- 
+ %%
 \begin{equation}
     R_\text{subtask}(s,a,s') = \begin{cases}
     +r_\text{pickup} & \text{if }a=\texttt{pickup}k \land x_k'=\texttt{agent}\\
     -r_\text{pickup} & \text{if }a=\texttt{release}\land x_k=\texttt{agent}\\
     0 & \text{otherwise}\end{cases}
 \end{equation}
-
+%%
 Similarly, there is a positive reward $r_\text{delivery}$ for delivering an item to its goal location. The transition model does not allow the agent to pick an item up if it takes the value \texttt{goal}, therefore no negative reward for this case is required. 
-
+%%
 \begin{equation}
     R_\text{task}(s,a,s') = \begin{cases} + r_\text{delivery} & \text{if }a=\texttt{release}\land x_k'=\texttt{goal}\land x_k=\texttt{agent}\\
     0 & \text{otherwise}
     \end{cases}
 \end{equation}
-
-
+%%
 \subsubsection{Initial Belief $b_0$}
 The initial belief $b_0(s)$ is a distribution that defines the probability for each value of the partially observable variables in state $s$. Since the belief grid (see subsection \ref{subsec:sysarch}) considers the items independent of each other, the belief can be expressed as multiplication of the belief $b_0(x_k)$ of each item
 \begin{equation}
@@ -255,42 +308,91 @@ The belief $b_0(x_k)$ of item $k$ can be represented as a vector where each elem
 \begin{equation}
     b_0(x_k) = \begin{pmatrix} b_0(x_k=n_0) & \cdots & b_0(x_k=n_N) & b_0(x_k=\texttt{agent}) & b_0(x_k=\texttt{goal}) \end{pmatrix}^\intercal.
 \end{equation}
-
+%%
 To calculate the probability that the item is in node $n_i$, the cells $\mathcal{C}(n_i)$ of the belief grid that lie within $n_i$ are aggregated
-
+%%
 \begin{equation}
-b_0\left(x_k=n_i\right) = \sum_{j\in \mathcal{C}(n_i)}\texttt{belief\_grid[$j$]}.
+b_0\left(x_k=n_i\right) = \sum_{j\in \mathcal{C}(n_i)}\texttt{belief\_grid[$k, j$]}.
 \end{equation}
-
+%%
 Note that item value \texttt{agent} and \texttt{goal} are observable values and the initial belief is therefore either one if the item is on the agent or already got delivered and zero otherwise. 
-
+%%
 \subsubsection{Discount Factor $\gamma$}
 Discounting can be used to value future rewards less than current ones and is required for some solving methods like Sarsop (see subsection \ref{subsec:SARSOP}). Since the goal of this object search and delivery problem is to minimize the total time, the discounting factor is chosen close to one:
 \begin{equation}
     \gamma = 0.999
 \end{equation}
-
+%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{Subroutines}\label{subsec:subroutine}
-\begin{itemize}
-    \item \texttt{Nav($n_i$, $n_j$)}
-    \item \texttt{pickup}
-    \item \texttt{look\_around}
-    \item \texttt{release}
-\end{itemize}
+After the POMDP solver chose an action the designated subroutine takes over and creates the reference for the robot controller. Each subroutine has termination criteria that determine the end of the action, after which the POMDP is solved again. Note that only one criteria needs to be fulfilled for termination. There is one subroutine for all navigation actions, one for all pickup actions, one for the \texttt{release} action and one for the \texttt{look\_around} action. A possible implementation of each subroutine is briefly outlined below.\\
+
+To steer the agent between two nodes, the navigation subroutine of action \texttt{nav($n_i, n_j$)} computes the shortest path to the mid-point of node $n_j$ for starting node $n_i$ and vice versa. All subroutines use the $A^*$-algorithm for path planning. The action is terminated as soon as the agent is in the target node or if there is a sudden increase in the belief grid, which means that an item was detected.\\
+\textit{\textbf{Termination criteria for the navigation subroutine:}}
+\begin{align}
+    \text{criteria 1}&: \quad
+    \begin{cases}x_a == n_j &\text{if the agent started in }n_i\\ 
+    x_a == n_i & \text{if the agent started in }n_j \end{cases}\\
+    \text{criteria 2}&:\quad \frac{\texttt{b\_max}}{\texttt{b\_max\_0}} > \max\left(1.05, \frac{0.9}{\texttt{b\_max\_0}}\right)
+\end{align}
+
+where \texttt{b\_max\_0} is the maximum belief value of the belief grid at the start-time of the subroutine and \texttt{b\_max} is the current maximum belief value.\\
+
+The pickup subroutine aims at grasping the item in the current node and assumes that the item does not need to be searched first. For action $\texttt{pickup}k$ the subroutine sets the path to the belief cell with the highest belief value for item $k$. During execution the belief grid is continuously updated and the target cell adapted to the one with maximum belief. If the target cell is reached, the agent grabs the item and the subroutine terminates. If an other, previously unobserved item is discovered during execution, the subroutine returns, as the optimal action to execute might be a different one now. To avoid that the agent drives around the node forever, which would be the case if the item is not present, the action terminates if the total belief of item $k$ within the current node dropped below a threshold.\\
+\textit{\textbf{Termination criteria for the pickup subroutine:}}
+\begin{align}
+    \text{criteria 1}&: \quad x_k == \texttt{agent}\\
+    \text{criteria 2}&: \quad \frac{\texttt{b\_max}}{\texttt{b\_max\_0}} > \max\left(1.05, \frac{0.9}{\texttt{b\_max\_0}}\right)\\
+    \text{criteria 3}&: \quad \frac{\texttt{b\_tot}}{\texttt{b\_tot\_0}} < 0.25
+\end{align}
+
+where \texttt{b\_max} and \texttt{b\_max\_0} are the max belief value any item $u\neq k$, \texttt{b\_tot\_0} is the aggregated belief of item $k$ in the current node at the start time of the subroutine and \texttt{b\_max} the current aggregated belief.\\
+
+The purpose of the \texttt{look\_around} subroutine is to discover items in the current node. A next-best-view method similar to the baseline method (section \ref{sec:baseline}) can be used for this search task. The utilities are $u_{\Delta t}$ which corresponds to the expected time to transfer to the target pose $p$ and $u_b$  which considers the summed belief which the agent expects to observe at $p$.
+\begin{equation}
+p_\text{target} = \argmin_{p\in \text{candidates}} f\left(u_{\Delta t}(p), u_b(p)\right)
+\end{equation}
+As in the baseline method, a new target pose is chosen once the current is reached. The subroutine terminates if more than ninety per cent of the node area was observed, if the maximum belief increased, which indicates that an item was discovered or if the belief peak of the node is reduced strongly enough. The later considers the difference between the highest belief values and the median belief value of the current node and its change since the start of the action. \\
+\textit{\textbf{Termination criteria for the \texttt{look\_around} action:}}
+\begin{align}
+    \text{criteria 1}&: \quad \frac{\text{observed area of current node}}{\text{unobserved area of current node}} > 0.9\\
+    \text{criteria 2}&: \quad \frac{\texttt{b\_max}}{\texttt{b\_max\_0}} > \max\left(1.05, \frac{0.9}{\texttt{b\_max\_0}}\right)\\
+    \text{criteria 3}&: \quad  \texttt{b\_max\_N} - \texttt{b\_m} < \frac{1}{20}\cdot (\texttt{b\_max\_N\_0} - \texttt{b\_m\_0})
+\end{align}
+where \texttt{b\_m} is the median belief value of the current node, \texttt{b\_max\_N} is the averaged belief of the $N$ highest belief values and \texttt{b\_max\_N\_0}, \texttt{b\_m\_0} are the same values at start time.\\
+
+The behaviour of the release subroutine depends on the current node the agent is in. If the goal location of the momentarily carried item is within the current node, the subroutine sets the shortest path to the goal location as reference and then delivers the item. Otherwise, the item is just released at the agents location. No special termination criteria is needed, the action finishes as soon as the before carried item is not on the agent anymore. 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\subsection{Assumptions and Extensions}
-\begin{itemize}
-    \item Dynamic Environment
-    \item Furniture
-    \item Multiple items of same kind
-\end{itemize}
+\subsection{Model Extensions}
+This subsection looks at the assumptions made in the problem definition (section \ref{sec:problemdef}) and how they can be loosened by adapting the above presented POMDP problem. \\
+
+One of the most unrealistic assumptions is the absence of furniture. In most offices mugs do not lie on the floor [\textit{citation needed}] but are in a cupboard,in the dishwasher or on a table. A furniture can be added to the POMDP model by handling it as a node. The \texttt{look\_around} and pickup subroutine would need to be adapted to be able to interact with it. Further, the observation probability for navigating to the furniture needs to be adapted. For a cupboard the probability of observing the mug while approaching the cupboard should be zero assuming that the cupboard is closed while the mug could be spotted if it is on a table.\\
+
+A real office does not satisfy the assumption of a static environment as there are moving obstacles and people interacting with the searched items. 
+The solution framework presented in this section can be used for such environments without further adaptions on the POMDP model, as it is used for high-level planning only. The subroutines would need to be generalised with moving obstacle avoidance and more flexible termination criteria. A mean employe could for example steal the item the robot is currently carrying. In such a case the agent should immediately stop the current subroutine and resolve the POMDP. Further, the update formula for the belief grid could be adapted to the dynamic environment. Consider the task where the agent should find the milk. As the milk is usually in the refrigerator the agent would probably check there. However, the milk might not be there as the previous refrigerator user forgot to put it back. As the milk was not observed the belief that the milk is in the refrigerator is now very low. The agent would not check the fridge for a very long time as the execution time of opening and closing the fridge yields a large time penalty $R_\text{time}$ and the belief of the milk being there is small. In reality it is very likely that an other coworker sees the milk and puts it back in the fridge. The belief update formula can be adapted such that the belief goes back to the initial belief as time passes. In particular equation \ref{eq:belief_grid2} for the case where item $k$ was not observed should be changed to:
+\begin{multline}
+    \texttt{bg[k, u, v]} = \\
+    \begin{cases} 
+        \eta \cdot\max\left(10^{-10}, (1 -  orr_2) \cdot \texttt{bg[k, u, v]}\right) &\text{if }c_\texttt{(u,v)} \in \mathcal{C}_\text{obs}\\
+        \eta \cdot \max\left(10^{-10}, orr_2 \cdot \sum_{(i,j)}p(r_k'=c_{(u,v)}|r_k=c_{(i,j)}) \cdot \texttt{bg[k, i, j]}\right) &\text{otherwise}
+    \end{cases}
+\end{multline}
+where 
+\begin{equation}
+    p(r_k'=c_{(u,v)}|r_k=c_{(i,j)}) = \begin{cases}
+    \epsilon \cdot \texttt{bg\_0[k, u, v]} &\text{if } (u,v)\neq (i,j)\\
+    1 - \epsilon \cdot (1-\texttt{bg\_0}[k, u, v]) &\text{otherwise}
+    \end{cases}.
+\end{equation}
+
+The simplification that only one item of each type can be restricting for a service robot. A task might involve delivering two mugs in an environment where many clean mugs are present and the user does not care which specific mug is delivered. To loose this assumption, the belief grid normalization procedure needs to be adapted such that the summation over the entire belief grid is equal to the number of mugs in the environment. The update equations for a belief grid cell (\ref{eq:belief_grid1} and \ref{eq:belief_grid2}) need to be changed since they are based on the assumption that the item can only be at one place at a time. This is not the case in an environment with multiple items of the same type which are not distinguished. 
+ 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Multi-Scale POMDP Agents}\label{sec:MultiScale}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\subsection{Overview}
+\subsection{Reasoning on Multiple Spatial Scales}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{Method 01}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
