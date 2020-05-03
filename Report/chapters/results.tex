@@ -3,133 +3,146 @@
 %\chapter{Einleitung}
 %\label{sec:einleitung}
 
-In this chapter the conducted experiments are briefly outlined and the perfo
+This chapter describes the conducted experiments and discusses their implications. In the first section the different object search agents described in chapter \ref{sec:object_search} are compared regarding computation time and solution quality. Section \ref{sec:cornercases} investigates two tasks in more detail and highlights the weakness and strengths of the different agents.
 
+\section{Sampled Runs}
+The experiments are conducted in a low fidelity simulation and the POMDP agents are solved with the SARSOP algorithm [\textcolor{red}{REF HERE}]. Figure \ref{subfig:sc01_b0} shows a typical task in the three room environment. The item is located at the belief peak in the second room which has a higher total belief than the first room. As shown in \ref{subfig:sc01_sol}, the Method 01 agent first checks the belief peak in the first room before heading towards the second room. This behaviour demonstrates the agent's ability to reason that checking the first belief peak is a short detour which saves a lot of time if the item is in the first room.\\
 
-\section{Title here}
+\begin{figure}
+    \centering
+    \begin{subfigure}[b]{0.49\textwidth}
+        \includegraphics[width=\textwidth]{Report/images/experiments/envsmall_sc01_belief_items.png}
+        \caption{Initial configuration}
+        \label{subfig:sc01_b0}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[b]{0.49\textwidth}
+         \includegraphics[width=0.82\textwidth]{Report/images/experiments/envsmall_sc01_sol_D1_edited.png}
+        \caption{Solution of the Method 01 agent}
+        \label{subfig:sc01_sol}
+    \end{subfigure}
+    \caption{A typical task in the three room environment involving one item. The agent's start position is marked with a black circle, the item's initial position with a pink square and the goal location with a pink hexagon. Image (\subref{subfig:sc01_b0}) shows the initial belief of the item's location and in (\subref{subfig:sc01_sol}) the path of the Method 01 agent is shown. The black line corresponds to the path the agent took, the red circle represents a pickup action and the red triangle a \texttt{release} action.}
+    \label{fig:sc01}
+\end{figure}
 
-% \begin{figure}
-%     \centering
-%     \begin{subfigure}[b]{0.49\textwidth}
-%         \includegraphics[width=\textwidth]{Report/images/experiments/envsmall_sc01_belief_items.png}
-%         \caption{Caption}
-%         \label{subfig:my_label}
-%     \end{subfigure}
-%     \begin{subfigure}[b]{0.49\textwidth}
-%          \includegraphics[width=0.82\textwidth]{Report/images/experiments/envsmall_sc01_sol_D1_edited.png}
-%         \caption{Caption}
-%         \label{subfig:my_label}
-%     \end{subfigure}
-%     \caption{Blabliblub}
-%     \label{fig:my_label}
-% \end{figure}
+To compare different agents the same scenario is run multiple times with the initial item location sampled from the initial belief distribution. The solution quality is measured as the time the agent took to deliver all items not counting the computation time. Therefore, a small solution quality is preferred. In figure \ref{fig:b1vsFlat} the baseline agent is compared to the normal POMDP agent from section \textcolor{red}{REF HERE}. The POMDP agent performs better than the baseline agent. The baseline agent does not consider the belief distribution and is not able to reason which item to deliver first, resulting in a longer delivery time (=solution quality). For the scenario with broad belief in (\subref{subfig:b1vsFlat_sc06}) the solution qualities are almost identical, which indicates that the underlying subroutines of the POMDP agent could be improved. For the task in the large environment (see figure \ref{fig:M1_prob01}) the baseline agent did not find the item in seven of the thirty samples before the simulation was terminated.\\
 
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% \begin{figure}
-%     \centering
-%     \begin{subfigure}[b]{0.49\textwidth}
-%         \includegraphics[width=\textwidth]{Report/images/sol_quality/envsmall_sc01_solqual_hist.png}
-%         \caption{Caption}
-%         \label{subfig:my_label}
-%     \end{subfigure}
-%     \begin{subfigure}[b]{0.49\textwidth}
-%          \includegraphics[width=\textwidth]{Report/images/sol_quality/envsmall_sc04_solqual_hist.png}
-%         \caption{Caption}
-%         \label{subfig:my_label}
-%     \end{subfigure}
-%     \hfill
-%     \begin{subfigure}[b]{0.49\textwidth}
-%         \includegraphics[width=\textwidth]{Report/images/sol_quality/envsmall_sc06_solqual_hist.png}
-%         \caption{Caption}
-%         \label{subfig:my_label}
-%     \end{subfigure}
-%     \hfill
-%     \begin{subfigure}[b]{0.49\textwidth}
-%          \includegraphics[width=\textwidth]{Report/images/sol_quality/envsmall_sc09_solqual_hist.png}
-%         \caption{Caption}
-%         \label{subfig:my_label}
-%     \end{subfigure}
-%     \caption{Blabliblub}
-%     \label{fig:my_label}
-% \end{figure}
+\begin{figure}
+    \centering
+    \begin{subfigure}[b]{0.49\textwidth}
+        \includegraphics[width=\textwidth]{Report/images/sol_quality/envsmall_sc01_solqual_hist.png}
+        \caption{Scenario from figure \ref{fig:sc01l}}
+        \label{subfig:b1vsFlat_sc01}
+    \end{subfigure}
+    \begin{subfigure}[b]{0.49\textwidth}
+         \includegraphics[width=\textwidth]{Report/images/sol_quality/envsmall_sc04_solqual_hist.png}
+        \caption{Two items task with few belief peaks}
+        \label{subfig:b1vsFlat_sc04}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[t]{0.49\textwidth}
+        \includegraphics[width=\textwidth]{Report/images/sol_quality/envsmall_sc06_solqual_hist.png}
+        \caption{Two items task with broad belief distribution}
+        \label{subfig:b1vsFlat_sc06}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[t]{0.49\textwidth}
+         \includegraphics[width=\textwidth]{Report/images/sol_quality/envbig_sc01_solqual_hist.png}
+        \caption{One item task in large environment}
+        \label{subfig:b1vsFlat_sc01Big}
+    \end{subfigure}
+    \caption{Comparison in solution quality between the baseline agent and the flat POMDP agent. In (\subref{subfig:b1vsFlat_sc01}), (\subref{subfig:b1vsFlat_sc04}) and (\subref{subfig:b1vsFlat_sc06}) 100 samples are used. In (\subref{subfig:b1vsFlat_sc01Big}) 30 samples are used but 7 were removed for the baseline agent as it was not able to find the item before the termination time of the simulation was reached.}
+    \label{fig:b1vsFlat}
+\end{figure}
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% \begin{figure}
-%     \centering
-%     \begin{subfigure}[b]{0.49\textwidth}
-%         \includegraphics[width=\textwidth]{Report/images/comp_time_vs_sol_quality/envsmall_sc01_scatter_comptimes_vs_solqual.png}
-%         \caption{Caption}
-%         \label{subfig:my_label}
-%     \end{subfigure}
-%     \begin{subfigure}[b]{0.49\textwidth}
-%          \includegraphics[width=\textwidth]{Report/images/comp_time_vs_sol_quality/envsmall_sc04_scatter_comptimes_vs_solqual.png}
-%         \caption{Caption}
-%         \label{subfig:my_label}
-%     \end{subfigure}
-%     \hfill
-%     \begin{subfigure}[b]{0.49\textwidth}
-%         \includegraphics[width=\textwidth]{Report/images/comp_time_vs_sol_quality/envsmall_sc08_scatter_comptimes_vs_solqual.png}
-%         \caption{Caption}
-%         \label{subfig:my_label}
-%     \end{subfigure}
-%     \hfill
-%     \begin{subfigure}[b]{0.49\textwidth}
-%          \includegraphics[width=\textwidth]{Report/images/comp_time_vs_sol_quality/envsmall_sc09_scatter_comptimes_vs_solqual.png}
-%         \caption{Caption}
-%         \label{subfig:my_label}
-%     \end{subfigure}
-%         \hfill
-%     \begin{subfigure}[b]{0.49\textwidth}
-%         \includegraphics[width=\textwidth]{Report/images/comp_time_vs_sol_quality/envbig_sc01_noavr_scatter_comptimes_vs_solqual.png}
-%         \caption{Caption}
-%         \label{subfig:my_label}
-%     \end{subfigure}
-%     \hfill
-%     \begin{subfigure}[b]{0.49\textwidth}
-%          \includegraphics[width=\textwidth]{Report/images/comp_time_vs_sol_quality/envbig_sc03_scatter_comptimes_vs_solqual.png}
-%         \caption{Caption}
-%         \label{subfig:my_label}
-%     \end{subfigure}
-%     \caption{Blabliblub}
-%     \label{fig:my_label}
-% \end{figure}
+In figure \ref{fig:comptime_vs_solquality} the average computation time per action and the solution time of six different scenarios are plotted for the POMDP agents. Note that the $y$-axis is inverted, such that the runs with the lowest delivery times are on the top of the figure. Plots (\subref{subfig:comp_sc01}), (\subref{subfig:comp_sc04}), (\subref{subfig:comp_sc08}) and (\subref{subfig:comp_sc09}) are scenarios in the three room environment shown in figure \ref{fig:sc01}. They demonstrate that the MultiScale methods yield a speedup in computation time in the order of a magnitude without sacrificing solution quality. Further, one can see that from the MultiScale agents, Method 01 has on average the lowest and Method 03 the largest computation time.
+Subfigure (\subref{subfig:comp_sc04}) and (\subref{subfig:comp_sc08}) are both tasks involving two items. The initial belief in (\subref{subfig:comp_sc04}) has three belief peaks while in (\subref{subfig:comp_sc08}) no prior knowledge about the items was given, i.e. a uniform belief distribution.
+
+In a peaky scenario the solution quality is very similar for all agents as only limited reasoning is required to find a good solution. For a broad belief distributions the local reasoning of the lower layers becomes more important which explains why in (\subref{subfig:comp_sc08}) Method 02 has shorter delivery times as Method 01.  Method 03 had stability issues and is therefore excluded from the plot. The computation times are longer for the uniform belief scenario as the reachable belief space is larger the broader the initial belief.\\
+Subfigure (\subref{subfig:comp_sc09}) shows a scenario involving three items. SARSOP crashed during problem loading of the flat POMDP. The algorithm consumed about 40 GB of RAM before crashing with a segmentation fault error. Method 01 and Method 02 still have low computation times while Method 03 is noticeably slower due to its larger state and action space.\\
+Plots (\subref{subfig:comp_sc01Big}) and (\subref{subfig:comp_sc03Big}) are scenarios in the large office environment shown in figure \ref{fig:M1_prob01}. The flat POMDP agent is unable to solve problems this large within reasonable time while the MultiScale methods could still be run in a real-time application. The task in (\subref{subfig:comp_sc01Big}) involves one item. As a reference the flat POMDP has an average computation time per action of 300 seconds. The MultiScale methods yield a speedup in order of two magnitudes. For the two item scenario (\subref{subfig:comp_sc03Big}) Method 03 took about 80 seconds for computing an action and is also excluded from the plot. Method 01 and Method 02 are still fast enough for real-time applications.\\
+
+\begin{figure}
+    \centering
+    \begin{subfigure}[b]{0.49\textwidth}
+        \includegraphics[width=\textwidth]{Report/images/comp_time_vs_sol_quality/envsmall_sc01_scatter_comptimes_vs_solqual.png}
+        \caption{Scenario from figure \ref{fig:sc01l}}
+        \label{subfig:comp_sc01}
+    \end{subfigure}
+    \begin{subfigure}[b]{0.49\textwidth}
+         \includegraphics[width=\textwidth]{Report/images/comp_time_vs_sol_quality/envsmall_sc04_scatter_comptimes_vs_solqual.png}
+        \caption{Two items scenario with few belief peaks}
+        \label{subfig:comp_sc04}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[b]{0.49\textwidth}
+        \includegraphics[width=\textwidth]{Report/images/comp_time_vs_sol_quality/envsmall_sc08_scatter_comptimes_vs_solqual.png}
+        \caption{Two items task with uniform initial belief}
+        \label{subfig:comp_sc08}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[b]{0.49\textwidth}
+         \includegraphics[width=\textwidth]{Report/images/comp_time_vs_sol_quality/envsmall_sc09_scatter_comptimes_vs_solqual.png}
+        \caption{Three items task with few belief peaks}
+        \label{subfig:comp_sc09}
+    \end{subfigure}
+        \hfill
+    \begin{subfigure}[b]{0.49\textwidth}
+        \includegraphics[width=\textwidth]{Report/images/comp_time_vs_sol_quality/envbig_sc01_noavr_scatter_comptimes_vs_solqual.png}
+        \caption{One item task in large environment}
+        \label{subfig:comp_sc01Big}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[b]{0.49\textwidth}
+         \includegraphics[width=\textwidth]{Report/images/comp_time_vs_sol_quality/envbig_sc03_scatter_comptimes_vs_solqual.png}
+        \caption{Two item task in large environment}
+        \label{subfig:comp_sc03Big}
+    \end{subfigure}
+    
+    \caption{Comparison of the average computation time per action and solution quality for the different agents. The best agents are in the top left corner where both the delivery time (=solution quality) and the computation time is short. In (\subref{subfig:comp_sc01}) and (\subref{subfig:comp_sc04}) 100 samples are evaluated,  in (\subref{subfig:comp_sc08}), (\subref{subfig:comp_sc01Big}) and (\subref{subfig:comp_sc03Big}) 30 samples and in (\subref{subfig:comp_sc09}) 10 samples. For the two item scenario in the large environment shown in (\subref{subfig:comp_sc03Big}) only 11 samples are shown as for the other samples the agents did not finish the task before the termination time of the simulation.}
+    \label{fig:comptime_vs_solquality}
+\end{figure}
 
 
 
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% \begin{figure}
-%     \centering
-%     \begin{subfigure}[b]{0.49\textwidth}
-%         \includegraphics[width=\textwidth]{Report/images/nr_of_items/items_vs_comptime_Flat.png}
-%         \caption{Caption}
-%         \label{subfig:my_label}
-%     \end{subfigure}
-%     \begin{subfigure}[b]{0.49\textwidth}
-%          \includegraphics[width=\textwidth]{Report/images/nr_of_items/items_vs_comptime_DualScaleM1.png}
-%         \caption{Caption}
-%         \label{subfig:my_label}
-%     \end{subfigure}
-%     \hfill
-%     \begin{subfigure}[b]{0.49\textwidth}
-%         \includegraphics[width=\textwidth]{Report/images/nr_of_items/items_vs_comptime_DualScaleM2.png}
-%         \caption{Caption}
-%         \label{subfig:my_label}
-%     \end{subfigure}
-%     \hfill
-%     \begin{subfigure}[b]{0.49\textwidth}
-%          \includegraphics[width=\textwidth]{Report/images/nr_of_items/items_vs_comptime_DualScaleM3.png}
-%         \caption{Caption}
-%         \label{subfig:my_label}
-%     \end{subfigure}
-%      \caption{Blabliblub}
-%     \label{fig:my_label}
-% \end{figure}
+In figure \ref{fig:nr_of_items} the influence of the number of items on computation time is shown for the four POMDP methods. The scenarios plotted have varying "peakiness" of the initial belief distribution. The plots show that the number of items has a greater effect on computation time than the belief distribution. The state space increases exponentially with the number of items and so does the computation time. The average computation time of Method 01 grows the the least per extra item. This coincides with the fact that the for Method 01 only the top layer considers all items while the lower layers consider at maximum one item. For Method 03 the computation time for three items is already a magnitude higher than for two items. As Method 03 considers more nodes than Method 01 and Method 02, the exponential growth can already be observed for three items. For the flat POMDP agent a three item scenario could not be computed. The SARSOP algorithm crashed with a segmentation fault as the memory requirements are too large.
+\begin{figure}
+    \centering
+    \begin{subfigure}[b]{0.49\textwidth}
+        \includegraphics[width=\textwidth]{Report/images/nr_of_items/items_vs_comptime_Flat.png}
+        \caption{Flat POMDP agent}
+        \label{subfig:nr_of_items_Flat}
+    \end{subfigure}
+    \begin{subfigure}[b]{0.49\textwidth}
+         \includegraphics[width=\textwidth]{Report/images/nr_of_items/items_vs_comptime_DualScaleM1.png}
+        \caption{MultiScale Method 01 agent}
+        \label{subfig:nr_of_items_D1}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[b]{0.49\textwidth}
+        \includegraphics[width=\textwidth]{Report/images/nr_of_items/items_vs_comptime_DualScaleM2.png}
+        \caption{MultiScale Method 02 agent}
+        \label{subfig:nr_of_items_D2}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[b]{0.49\textwidth}
+         \includegraphics[width=\textwidth]{Report/images/nr_of_items/items_vs_comptime_DualScaleM3.png}
+        \caption{MultiScale Method 03 agent}
+        \label{subfig:nr_of_items_D3}
+    \end{subfigure}
+     \caption{Influence of the number of items in the task on the average computation time per action. All six scenarios take place in the small office environment but have different initial belief distributions. Scenario 3 has a broader belief than scenario 1. Scenario 8 has a uniform belief distribution and scenario 6 has a broader initial belief than scenario 4. The Note that the $y$-axis in (\subref{subfig:nr_of_items_D3}) has a logarithmic scale. }
+    \label{fig:nr_of_items}
+\end{figure}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\section{Corner Cases}
+
+\section{Corner Cases}\label{sec:cornercases}
 In this section the reasoning abilities of the three MultiScale methods are compared on two scenarios highlighting the weakness of the agents. The first problem shown in figure \ref{fig:M1_prob01} demonstrates that Method 02 and Method 03 have better lower layer reasoning than Method 01. In (\subref{subfig:problem1_M1}) and (\subref{subfig:problem1_M2}) a snapshot of the Method 01 respectively Method 02 agent is shown. In the task the item is located right at the corner of one of multiple belief peaks, such that it was not spotted by the navigation action. For method 01 the top layer decided to go to node $n_0^{l0}$ as soon as the majority of the belief peak was observed, as the coarse discretisation of layer 0 does not reflect that some part of the belief peak is still right in front of the agent. Similarly, in the bottom most right room the search was more thorough than the one left to it. As the belief in $n_3^{l0}$ decreased under a certain threshold, layer 0 chose to go the another node. The lower layers of Method 01 execute the action of the layer above in as little time as possible and can not correct for the top layers inaccuracy. \\
 The Method 02 agent has better lower layer reasoning than Method 01 and finds the item right away. As for Method 01, the top layer chooses to go to $n_0^{l0}$. The lower layers in Method 02 have access to the value function of the layer above and can choose to first explore the current states before completing the higher layer action. Layer 1 chose a \texttt{look\_around} action and observes the item, leading to a better solution than the one of Method 01. \\
 
