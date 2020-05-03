@@ -393,6 +393,130 @@ The simplification that only one item of each type can be restricting for a serv
 \section{Multi-Scale POMDP Agents}\label{sec:MultiScale}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{Reasoning on Multiple Spatial Scales}
+
+\subsubsection{Higher Layer Transition, Reward and Observation Model}
+% \begin{equation}
+% R\left( x_a^{l0}=n_0^{l0},a^{l0}=\texttt{nav($n_0^{l0}, n_1^{l0}$)} \right) = R^{\pi_\text{OL}}(x_
+% \end{equation}
+\textcolor{red}{MENTION OPTION FRAMEWORK FOR CLOSED LOOP POLICIES ACTING ON STATES WITH A REFERENCE TO THE ORIGINAL PAPER}\\
+State general formulas, make one example how it is used for both reward and observation models, state that also a closed loop policies acting on states could be used using option framework
+\begin{equation}
+    R^{\pi_\text{OL}}\left( s^{l1} \right) = R\left(s^{l1}, \pi_\text{OL}(0)\right) + \gamma \cdot \sum_{s'\in \mathcal{S}^{l1}}T\left( s^{l1}, a=\pi_\text{OL}(0), s' \right)\cdot R^{\pi_\text{OL}(1)}\left( s' \right)
+\end{equation}
+
+\begin{equation}
+    \begin{aligned}
+    R^{\pi_\text{OL}}\left(x_a^{l1}=n_0\right)=
+    &R\left(x_a^{l1}=n_0^{l1}, a^{l1}=\texttt{nav($n_0^{l1}, n_2^{l1}$)} \right) \\
+    &+ \gamma \cdot R\left(x_a^{l1}=n_2^{l1}, a^{l1}=\texttt{nav($n_2^{l1}, n_3^{l1}$)} \right)
+\end{aligned}
+\end{equation}
+
+\begin{equation}
+    \begin{aligned}
+       R\left(x_a^{l0}=n_0^{l0}, a^{l0}=\texttt{nav($n_0^{l0}, n_1^{l0}$)}\right) = \frac{1}{3}\cdot \big(&R^{\pi_\text{OL}}\left(x_a^{l1}=n_0^{l0}\right) + R^{\pi_\text{OL}}\left(x_a^{l1}=n_1^{l0}\right)\\
+       &+ R^{\pi_\text{OL}}\left(x_a^{l1}=n_2^{l0}\right)\big)
+    \end{aligned}
+\end{equation}
+
+
+\begin{equation}
+    \begin{aligned}
+        O^{\pi_\text{OL}}\left( o^{l1}=n_i^{l1}, s_0^{l1}\right) = &\sum_{s'\in\mathcal{S^{l1}}} T\left( \cdots \right) \cdot O\left(\cdots\right) \\
+        &+ \gamma \cdot \sum_{s'\in\mathcal{S^{l1}}} T\left( \cdots \right) \cdot O^{\pi_\text{OL}(1)}\left( \cdots  \right)
+    \end{aligned}
+\end{equation}
+
+\begin{equation}
+    \begin{aligned}
+        O^{\pi_\text{OL}}\left( o^{l1}=n_1^{l1},s_0^{l1}=n_0^{l1} \right) = &O\left(o^{l1}=n_1^{l1}, s^{l1}=n_2^{l1}, a=\texttt{nav($n_0^{l1}, n_2^{l1}$)} \right)\\
+        &+ O\left(o^{l1}=\texttt{no}, s^{l1}=n_2^{l1}, a=\texttt{nav($n_0^{l1}, n_2^{l1}$)} \right)\\
+        &\cdot O\left(o^{l1}=n_1^{l1}, s^{l1}=n_3^{l1}, a=\texttt{nav($n_2^{l1}, n_3^{l1}$)} \right)
+    \end{aligned}
+\end{equation}
+
+
+
+
+\begin{example}
+asdf
+\end{example}
+
+
+
+
+\begin{equation}
+    \begin{aligned}[t] 
+        x_a^{l0} &\in \big\{n_0^{l0}, n_1^{l0}, n_2^{0}  \big\} \\
+        x_k^{l0} &\in  \big\{n_0^{l0}, n_1^{l0}, n_2^{0}, \texttt{agent},\texttt{goal}  \big\}\\
+        o_k^{l0} &\in \big\{\texttt{no}, n_0^{l0}, n_1^{l0}, n_2^{0}, \texttt{agent} \big\}\\
+        a^{l0} &\in \begin{aligned}[t]\big\{&\texttt{nav($n_0^{l0}, n_1^{l0}$)}, \texttt{nav($n_1^{l0}, n_2^{l0}$)},\texttt{pickup}1, \cdots, \texttt{pickup}m, \texttt{release}\big\}
+        \end{aligned}
+        %& & \cdots, \texttt{pickup}m, \texttt{release}\big\}
+    \end{aligned}
+\end{equation}
+
+\begin{equation}
+    \begin{aligned}[t] 
+        x_a^{l1} &\in \big\{n_0^{l1}, \cdots, n_8^{l1} \big\} \\
+        x_k^{l1} &\in  \big\{n_0^{l1},\cdots, n_8^{l1}, \texttt{agent},\texttt{goal}  \big\}\\
+        o_k^{l1} &\in \big\{\texttt{no}, n_0^{l1},\cdots, n_8^{l1}, \texttt{agent} \big\}\\
+        a^{l1} &\in \begin{aligned}[t]\big\{&\texttt{nav($n_0^{l0}, n_1^{l0}$)}, \cdots,\texttt{look\_around}, \texttt{pickup}1, \cdots, \texttt{pickup}m, \texttt{release}\big\}
+        \end{aligned}
+        %& & \cdots, \texttt{pickup}m, \texttt{release}\big\}
+    \end{aligned}
+\end{equation}
+
+
+
+
+\begin{figure}
+    \centering
+    \begin{subfigure}[b]{0.48\textwidth}
+        \includegraphics[width=\textwidth]{Report/images/layer0_b.png}
+        \caption[t]{caption very long asdffffffffffffffffffffffffffffffffffffffffffffffffffffffffff}
+        \label{subfig:l0}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[b]{0.48\textwidth}
+        \includegraphics[width=\textwidth]{Report/images/layer1.png}
+        \caption{caption very long asdffffffffffffffffffffffffffffffffffffffffffffffffffffffffff}
+        \label{subfig:l1}
+    \end{subfigure}
+    \caption{Caption}
+    \label{fig:belief_grid}
+\end{figure}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{figure}
+    \centering
+    \begin{subfigure}[b]{0.23\textwidth}
+        \includegraphics[width=\textwidth]{Report/images/Bilda.png}
+        \caption[t]{Environment}
+        \label{subfig:bigenv}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[b]{0.23\textwidth}
+        \includegraphics[width=\textwidth]{Report/images/Bildb.png}
+        \caption{Layer 0}
+        \label{subfig:bigenvl0}
+    \end{subfigure}
+     \hfill
+    \begin{subfigure}[b]{0.23\textwidth}
+        \includegraphics[width=0.8\textwidth]{Report/images/Bild1c.png}
+        \caption{$n_0^{l0}$ on layer 1}
+        \label{subfig:bigenvl1}
+    \end{subfigure}
+     \hfill
+    \begin{subfigure}[b]{0.23\textwidth}
+        \includegraphics[width=0.5\textwidth]{Report/images/Bild1d.png}
+        \caption{$n_0^{l1}$ on layer 2}
+        \label{subfig:bigenvl2}
+    \end{subfigure}
+    \caption{Caption}
+    \label{fig:belief_grid}
+\end{figure}
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{Method 01}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

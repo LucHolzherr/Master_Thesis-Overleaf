@@ -92,3 +92,15 @@
 \usepackage{cleveref}
 
 \usepackage{enumerate}  
+
+% self made example environment
+% \usepackage{amsthm} 
+% \newtheoremstyle{example}{}{}{}{}{\bfseries}{\smallskip}{\newline}{}
+% \theoremstyle{example}
+% \newtheorem{example}{Example}
+
+\usepackage{ntheorem}
+\theoremstyle{break}
+\theorembodyfont{\upshape}
+\newtheorem{example}{Example}
+\numberwithin{example}{chapter}
