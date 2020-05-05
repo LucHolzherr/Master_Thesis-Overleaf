@@ -104,3 +104,12 @@
 \theorembodyfont{\upshape}
 \newtheorem{example}{Example}
 \numberwithin{example}{chapter}
+
+% self made symbol for denoting the end of an example
+\newcommand\xqed[1]{%
+  \leavevmode\unskip\penalty9999 \hbox{}\nobreak\hfill
+  \quad\hbox{#1}}
+\newcommand\demo{\xqed{$\square$}}
+
+% self made command
+\newcommand{\SubNode}{\mathit{Subnodes}}

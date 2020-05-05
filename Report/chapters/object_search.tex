@@ -72,7 +72,7 @@ where $\mathcal{C}_\text{obs}$ is the set of observed cell since the last belief
 \end{figure}
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\subsection{POMDP Model}
+\subsection{POMDP Model}\label{subsec:POMDPmodel}
 \textcolor{red}{REFERENCE TO MASTER THESIS/PAPER THIS MODEL IS BASED ON}\\
 In this section the POMDP model\footnote{Note that the model presented here is - as is always the case in modelling - a simple approximation of the true system and its complexity is the solely the designers choice.} (see section \ref{sec:POMDP}) defined by the tuple $P = \langle \mathcal{S}, \mathcal{A}, \mathcal{O}, T, Z, R, b_0, \gamma \rangle$ is described for a search task involving $m$ items. The environment is divided into $N$ separate non-overlapping regions which from now on are called nodes. In figure \ref{fig:nodes} a small office environment with 3 rooms is showed which got partitioned into $N=9$ nodes $n_0$ to $n_8$. Note that the nodes can in principle have any shape and do not need to be rectangles.
 \begin{figure}
@@ -377,13 +377,14 @@ The solution framework presented in this section can be used for such environmen
         \eta \cdot \max\left(10^{-10}, orr_2 \cdot \sum_{(i,j)}p(r_k'=c_{(u,v)}|r_k=c_{(i,j)}) \cdot \texttt{bg[k, i, j]}\right) &\text{otherwise}
     \end{cases}
 \end{multline}
-where 
+where $p(r_k'=c_{(u,v)}|r_k=c_{(i,j)})$ is the probability that the item transitions from cell $(i,j)$ to cell $(u,v)$. This probability can be expressed such that the belief of $(u,v)$ goes back to the initial belief: 
 \begin{equation}
     p(r_k'=c_{(u,v)}|r_k=c_{(i,j)}) = \begin{cases}
     \epsilon \cdot \texttt{bg\_0[k, u, v]} &\text{if } (u,v)\neq (i,j)\\
     1 - \epsilon \cdot (1-\texttt{bg\_0}[k, u, v]) &\text{otherwise}
-    \end{cases}.
+    \end{cases}
 \end{equation}
+with $\epsilon$ being a constant that determines how fast the initial belief is reached.\\
 
 The simplification that only one item of each type can be restricting for a service robot. A task might involve delivering two mugs in an environment where many clean mugs are present and the user does not care which specific mug is delivered. To loose this assumption, the belief grid normalization procedure needs to be adapted such that the summation over the entire belief grid is equal to the number of mugs in the environment. The update equations for a belief grid cell (\ref{eq:belief_grid1} and \ref{eq:belief_grid2}) need to be changed since they are based on the assumption that the item can only be at one place at a time. This is not the case in an environment with multiple items of the same type which are not distinguished. 
  
@@ -391,61 +392,35 @@ The simplification that only one item of each type can be restricting for a serv
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Multi-Scale POMDP Agents}\label{sec:MultiScale}
+POMDPs are computationally intractable to solve for large problems. As is shown in chapter \ref{sec:results} the POMDP agent is unable to solve a one item task in a large office environment within reasonable time. In this section a novel hierarchical POMDP framework is presented which greatly reduces computation times. The original POMDP problem is split into multiple smaller problems with different spatial resolution. First the top layer with a coarse resolution is solved and its proposed action is then refined. The lowest layer of the hierarchy corresponds to the original POMDP problem which should be solved..\\
+In section \ref{subsec:MultiScale_overview} the hierarchical framework is explained and in the sections \ref{subsec:M1} to \ref{subsec:M3} three different methods to combine the spatial layers are presented. Section \ref{subsec:MultiScale_properties} discusses properties of the MultiScale methods regarding solution quality and scaling. 
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\subsection{Reasoning on Multiple Spatial Scales}
+\subsection{Overview} \label{subsec:MultiScale_overview}
+MultiScale methods first solves the top layer $l0$ which yields the value function $V(b^{l0})$ and the first action to execute $a^{l0}$ where the superscript $l0$ indicates that the variable belongs to layer 0. On the lower layers only a subset of the state, observation and action space is considered, determined by $a^{l0}$. The MultiScale methods presented do not compute the entire solution beforehand but only the next action to execute. In the following the hierarchical layout is shown in more detail and then the higher layer transition, reward and observation models are derivated.
+%%%%%%%%%%%%%%%%
 
-\subsubsection{Higher Layer Transition, Reward and Observation Model}
-% \begin{equation}
-% R\left( x_a^{l0}=n_0^{l0},a^{l0}=\texttt{nav($n_0^{l0}, n_1^{l0}$)} \right) = R^{\pi_\text{OL}}(x_
-% \end{equation}
-\textcolor{red}{MENTION OPTION FRAMEWORK FOR CLOSED LOOP POLICIES ACTING ON STATES WITH A REFERENCE TO THE ORIGINAL PAPER}\\
-State general formulas, make one example how it is used for both reward and observation models, state that also a closed loop policies acting on states could be used using option framework
-\begin{equation}
-    R^{\pi_\text{OL}}\left( s^{l1} \right) = R\left(s^{l1}, \pi_\text{OL}(0)\right) + \gamma \cdot \sum_{s'\in \mathcal{S}^{l1}}T\left( s^{l1}, a=\pi_\text{OL}(0), s' \right)\cdot R^{\pi_\text{OL}(1)}\left( s' \right)
-\end{equation}
-
-\begin{equation}
-    \begin{aligned}
-    R^{\pi_\text{OL}}\left(x_a^{l1}=n_0\right)=
-    &R\left(x_a^{l1}=n_0^{l1}, a^{l1}=\texttt{nav($n_0^{l1}, n_2^{l1}$)} \right) \\
-    &+ \gamma \cdot R\left(x_a^{l1}=n_2^{l1}, a^{l1}=\texttt{nav($n_2^{l1}, n_3^{l1}$)} \right)
-\end{aligned}
-\end{equation}
-
-\begin{equation}
-    \begin{aligned}
-       R\left(x_a^{l0}=n_0^{l0}, a^{l0}=\texttt{nav($n_0^{l0}, n_1^{l0}$)}\right) = \frac{1}{3}\cdot \big(&R^{\pi_\text{OL}}\left(x_a^{l1}=n_0^{l0}\right) + R^{\pi_\text{OL}}\left(x_a^{l1}=n_1^{l0}\right)\\
-       &+ R^{\pi_\text{OL}}\left(x_a^{l1}=n_2^{l0}\right)\big)
-    \end{aligned}
-\end{equation}
-
-
-\begin{equation}
-    \begin{aligned}
-        O^{\pi_\text{OL}}\left( o^{l1}=n_i^{l1}, s_0^{l1}\right) = &\sum_{s'\in\mathcal{S^{l1}}} T\left( \cdots \right) \cdot O\left(\cdots\right) \\
-        &+ \gamma \cdot \sum_{s'\in\mathcal{S^{l1}}} T\left( \cdots \right) \cdot O^{\pi_\text{OL}(1)}\left( \cdots  \right)
-    \end{aligned}
-\end{equation}
-
-\begin{equation}
-    \begin{aligned}
-        O^{\pi_\text{OL}}\left( o^{l1}=n_1^{l1},s_0^{l1}=n_0^{l1} \right) = &O\left(o^{l1}=n_1^{l1}, s^{l1}=n_2^{l1}, a=\texttt{nav($n_0^{l1}, n_2^{l1}$)} \right)\\
-        &+ O\left(o^{l1}=\texttt{no}, s^{l1}=n_2^{l1}, a=\texttt{nav($n_0^{l1}, n_2^{l1}$)} \right)\\
-        &\cdot O\left(o^{l1}=n_1^{l1}, s^{l1}=n_3^{l1}, a=\texttt{nav($n_2^{l1}, n_3^{l1}$)} \right)
-    \end{aligned}
-\end{equation}
-
-
-
-
-\begin{example}
-asdf
-\end{example}
-
-
-
-
-\begin{equation}
+\subsubsection{Hierarchical Layout}
+The MultiScale POMDP arranges the environment into multiple layers with different discretisation levels. In figure \ref{fig:two_layers} the three room environment is shown for two different discretisation layers. Each node of layer 1 can be mapped to only one node of layer 0. To distinguish the variables and nodes of different layers the superscript $l0$ is used to indicate layer $0$. 
+\begin{figure}
+    \centering
+    \begin{subfigure}[b]{0.48\textwidth}
+        \includegraphics[width=\textwidth]{Report/images/layer0_b.png}
+        \caption[t]{Layer 0}
+        \label{subfig:l0}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[b]{0.48\textwidth}
+        \includegraphics[width=\textwidth]{Report/images/layer1.png}
+        \caption{Layer 1}
+        \label{subfig:l1}
+    \end{subfigure}
+    \caption{A two layer framework for the three room environment. Each node in layer 0 corresponds to multiple nodes on layer 1. Layer 1 has the same discretisation as the original POMDP problem shown in \ref{fig:nodes}.}
+    \label{fig:two_layers}
+\end{figure}
+The state, observation and action variables of layer 0 for the same environment are given by in equation \ref{eq:l0} and of layer 1 in \ref{eq:l1}. 
+%
+\begin{equation}\label{eq:l0}
     \begin{aligned}[t] 
         x_a^{l0} &\in \big\{n_0^{l0}, n_1^{l0}, n_2^{0}  \big\} \\
         x_k^{l0} &\in  \big\{n_0^{l0}, n_1^{l0}, n_2^{0}, \texttt{agent},\texttt{goal}  \big\}\\
@@ -453,10 +428,12 @@ asdf
         a^{l0} &\in \begin{aligned}[t]\big\{&\texttt{nav($n_0^{l0}, n_1^{l0}$)}, \texttt{nav($n_1^{l0}, n_2^{l0}$)},\texttt{pickup}1, \cdots, \texttt{pickup}m, \texttt{release}\big\}
         \end{aligned}
         %& & \cdots, \texttt{pickup}m, \texttt{release}\big\}
-    \end{aligned}
+    \end{aligned}.
 \end{equation}
-
-\begin{equation}
+%
+Because of the coarse discretisation not only the state and observation space is smaller but also the action space as fewer navigation actions are needed. Layer 1 corresponds to the original POMDP problem. Note that the \texttt{look\_around} action exists only in the lowest layer POMDP. 
+%
+\begin{equation}\label{eq:l1}
     \begin{aligned}[t] 
         x_a^{l1} &\in \big\{n_0^{l1}, \cdots, n_8^{l1} \big\} \\
         x_k^{l1} &\in  \big\{n_0^{l1},\cdots, n_8^{l1}, \texttt{agent},\texttt{goal}  \big\}\\
@@ -466,33 +443,13 @@ asdf
         %& & \cdots, \texttt{pickup}m, \texttt{release}\big\}
     \end{aligned}
 \end{equation}
-
-
-
-
-\begin{figure}
-    \centering
-    \begin{subfigure}[b]{0.48\textwidth}
-        \includegraphics[width=\textwidth]{Report/images/layer0_b.png}
-        \caption[t]{caption very long asdffffffffffffffffffffffffffffffffffffffffffffffffffffffffff}
-        \label{subfig:l0}
-    \end{subfigure}
-    \hfill
-    \begin{subfigure}[b]{0.48\textwidth}
-        \includegraphics[width=\textwidth]{Report/images/layer1.png}
-        \caption{caption very long asdffffffffffffffffffffffffffffffffffffffffffffffffffffffffff}
-        \label{subfig:l1}
-    \end{subfigure}
-    \caption{Caption}
-    \label{fig:belief_grid}
-\end{figure}
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
+For a larger environment more layers are needed to reach the desired discretisation level. Each node in layer 1 is split into multiple non-overlapping subnodes. A large office environment with three layers of discretisation is shown in figure \ref{fig:bigenv_3layers}. To achieve high speedup in computation time each node should be subdivided into 3-4 nodes. 
+%%%%%%%%%
 \begin{figure}
     \centering
     \begin{subfigure}[b]{0.23\textwidth}
         \includegraphics[width=\textwidth]{Report/images/Bilda.png}
-        \caption[t]{Environment}
+        \caption[t]{Large office environment}
         \label{subfig:bigenv}
     \end{subfigure}
     \hfill
@@ -503,30 +460,168 @@ asdf
     \end{subfigure}
      \hfill
     \begin{subfigure}[b]{0.23\textwidth}
-        \includegraphics[width=0.8\textwidth]{Report/images/Bild1c.png}
+        \includegraphics[width=0.85\textwidth]{Report/images/Bild1c.png}
         \caption{$n_0^{l0}$ on layer 1}
         \label{subfig:bigenvl1}
     \end{subfigure}
      \hfill
     \begin{subfigure}[b]{0.23\textwidth}
-        \includegraphics[width=0.5\textwidth]{Report/images/Bild1d.png}
+        \includegraphics[width=0.6\textwidth]{Report/images/Bild1d.png}
         \caption{$n_0^{l1}$ on layer 2}
         \label{subfig:bigenvl2}
     \end{subfigure}
-    \caption{Caption}
-    \label{fig:belief_grid}
+    \caption{Three layer discretisation of the large office environment}
+    \label{fig:bigenv_3layers}
 \end{figure}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsubsection{Higher Layer Transition, Reward and Observation Model}
+To solve the higher layers the respective transition, reward and observation models are needed. The lowest layer models are created as described in section \ref{subsec:POMDPmodel}. The transition models of the higher layers can be formulated analogous to the lowest layer with equations \ref{eq:Tnavxa}-\ref{eq:Txkts}. 
+The higher layer reward and observation models are created from the lower layer ones in recursive manner by using handcrafted open-loop policies. For each relevant state-action pair on layer $i$ at least one open-loop policy $\pi_\text{OL}$ on layer $i+1$ is required. The policy $\pi_\text{OL}$ is an ordered list where element $\pi_\text{OL}\texttt{[$j$]}$ is the $j$-th action to execute. The derivation of the higher layer reward model is first motivated by an example.
+\begin{example}\label{ex:R_OL}
+Consider the three room environment from figure \ref{fig:two_layers}. The reward of layer 0 for the state where the agent starts in the first room and chooses the navigation action to drive to the second room should be computed. The open-loop policy on layer 1 which should bring the agent from the first room to the second depends on the starting state on layer 1 and is shown in equation \ref{eq:OL_example}.
+\begin{equation}\label{eq:OL_example}
+    \pi_\text{OL} = \begin{cases}
+    \texttt{[nav($n_0^{l1}, n_2^{l1}$), nav($n_2^{l1}, n_3^{l1}$)]} & \text{if starting state is }n_0^{l1}\\
+    \texttt{[nav($n_1^{l1}, n_2^{l1}$), nav($n_2^{l1}, n_3^{l1}$)]} & \text{if starting state is }n_1^{l1}\\
+    \texttt{[nav($n_2^{l1}, n_3^{l1}$)]} & \text{if starting state is }n_2^{l1}
+    \end{cases}
+\end{equation}
+The reward of executing $\pi_\text{OL}$ in $n_0^{l1}$ is calculated by the discounted summation of the rewards for each action:
+\begin{equation}
+    \begin{aligned}
+    R^{\pi_\text{OL}}\left(x_a^{l1}=n_0\right)=
+    &R\left(x_a^{l1}=n_0^{l1}, a^{l1}=\texttt{nav($n_0^{l1}, n_2^{l1}$)} \right) \\
+    &+ \gamma \cdot R\left(x_a^{l1}=n_2^{l1}, a^{l1}=\texttt{nav($n_2^{l1}, n_3^{l1}$)} \right)
+\end{aligned}.
+\end{equation}
+The layer 0 reward can now be calculated by averaging the reward of executing $\pi_\text{OL}$ for the different starting states:
+\begin{equation}
+    \begin{aligned}
+       R\left(x_a^{l0}=n_0^{l0}, a^{l0}=\texttt{nav($n_0^{l0}, n_1^{l0}$)}\right) = \frac{1}{3}\cdot \big(&R^{\pi_\text{OL}}\left(x_a^{l1}=n_0^{l0}\right) + R^{\pi_\text{OL}}\left(x_a^{l1}=n_1^{l0}\right)\\
+       &+ R^{\pi_\text{OL}}\left(x_a^{l1}=n_2^{l0}\right)\big)
+    \end{aligned}
+\end{equation}
+Note that multiple open-loop policies could be used and the respective rewards averaged to the layer 0 reward. 
+\demo
+\end{example}
+
+In a more general setup with a non-deterministic transition model the the expected reward for following the open-loop policy $\pi_\text{OL}$ on layer $i$ starting in state $s^{li}$ can be computed recursively as 
+\begin{equation}\label{eq:R_OL}
+    R^{\pi_\text{OL}}\left( s^{li} \right) = R\left(s^{li}, \pi_\text{OL}\texttt{[$1$]}\right) + \gamma \cdot \sum_{s'\in \mathcal{S}^{li}}T\left( s^{li}, a=\pi_\text{OL}\texttt{[$1$]}, s' \right)\cdot R^{\pi_\text{OL}\texttt{[$2$:]}}\left( s' \right)
+\end{equation}
+where $\pi_\text{OL}\texttt{[$2$:]}$ is the same list starting at the second element.\\
+For the three layer hierarchy of figure \ref{fig:bigenv_3layers} the models of layer 1 are created with the models of layer 2. The models of layer 0 can then be computed with the models of layer 1.\\
+
+The higher layer observation models are constructed with the same approach. First, a mapping for the lower layer observations to the higher layer observation needs to be defined. One action of layer 0 corresponds to a policy on layer 1 which produces multiple observations. The observation of item $k$ in the higher layer takes the value $n_i$ if any of the observations on the lower layer is within $n_i$. If all observations on the lower layers are \texttt{no} the higher layer observation takes the value \texttt{no}:
+\begin{equation}
+    o_k^{l0} = \begin{cases}
+    n_i^{l0} &\text{if any }o_k^{l1}\in \SubNode(n_i^{l0})\\
+    \texttt{no} &\text{if all }o_k^{l1}=\texttt{no}
+    \end{cases}
+\end{equation}
+where $\SubNode(n_i^{l0})$ is the set of nodes on layer 1 that lie in $n_i^{l0}$. The higher layer observation model is again motivated by an example.
+\begin{example}
+Consider the three room environment and the open-loop policiy of example \ref{ex:R_OL}. The probability of observing $o_k^{l0}=n_0^{l0}$ should be computed. The probability of observing the item in node $n_1^{l1}$ under $\pi_\text{OL}$ in start state $x_{a,0}^{l1}=n_0^{l1}$ is calculated as the probability of observing the item after the first action plus the probability of not observing the item in the first action but observing the item after any of the later actions:
+\begin{equation}
+    \begin{aligned}
+        Z^{\pi_\text{OL}}\left( o_k^{l1}=n_1^{l1},x_{a,0}^{l1}=n_0^{l1} \right) = &Z\left(o^{l1}=n_1^{l1}, x_a^{l1}=n_2^{l1}, a^{l1}=\texttt{nav($n_0^{l1}, n_2^{l1}$)} \right)\\
+        &+ Z\left(o_k^{l1}=\texttt{no}, x_a^{l1}=n_2^{l1}, a^{l1}=\texttt{nav($n_0^{l1}, n_2^{l1}$)} \right)\\
+        &\cdot Z\left(o_k^{l1}=n_1^{l1}, x_a^{l1}=n_3^{l1}, a^{l1}=\texttt{nav($n_2^{l1}, n_3^{l1}$)} \right).
+    \end{aligned}
+\end{equation}
+The layer 0 observation model is calculated by averaging the observation model of executing $\pi_\text{OL}$ for the different starting states and the different observations that map to $n_0^{l0}$:
+\begin{equation}
+    \begin{aligned}
+        Z\left(o_k^{l0}=n_i^{l0},x_a'=n_1^{l0}, a=\texttt{nav($n_0^{l0}, n_1^{l0}$)}\right) = \frac{1}{3}\bigg( &\frac{1}{3}\sum_{o_k^{l1}\in\left\{n_0^{l1},n_1^{l1},n_2^{l1}\right\}} Z^{\pi_\text{OL}}\left( o_k^{l1},x_{a,0}^{l1}=n_0^{l1} \right)\\
+        &+\frac{1}{3}\sum_{o_k^{l1}\in\left\{n_0^{l1},n_1^{l1},n_2^{l1}\right\}} Z^{\pi_\text{OL}}\left( o_k^{l1},x_{a,0}^{l1}=n_1^{l1} \right)  \\
+        & +\frac{1}{3}\sum_{o_k^{l1}\in\left\{n_0^{l1},n_1^{l1},n_2^{l1}\right\}} Z_k^{\pi_\text{OL}}\left( o_k^{l1},x_{a,0}^{l1}=n_2^{l1} \right) \bigg)
+    \end{aligned}
+\end{equation}
+The probability of not observing the item is one minus the probability of observing it:
+\begin{multline}
+    Z^{\pi_\text{OL}}\left( o_k^{l0}=\texttt{no}, x_a^{l0}=n_2^{l0}, a^{l0}=\texttt{nav($n_0^{l0},n_1^{l0}$)}\right) = \\
+    1 - Z\left(o_k^{l0}=n_i^{l0},s'=n_1^{l0}, a=\texttt{nav($n_0^{l0}, n_1^{l0}$)}\right)
+\end{multline}
+\demo
+\end{example}
+
+For a more general setup the expected probability of observing item $k$ in $n_i^{l0}$ under the open-loop policy $\pi_\text{Ol}$ is computed recursively as
+\begin{equation}
+    \begin{aligned}
+        Z^{\pi_\text{OL}}\left( o^{l1}=n_i^{l1}, s_0^{l1}\right) = &\sum_{s'\in\mathcal{S^{l1}}} T\left( s_0^{l1}, \pi_\text{OL}\texttt{[$1$]}, s' \right) \cdot Z\left(o^{l1}=n_i^{l1}, s', \pi_\text{OL}\texttt{[$1$]}\right) \\
+        &+ \gamma \cdot \sum_{s'\in\mathcal{S^{l1}}} T\left( s_0^{l1}, \pi_\text{OL}\texttt{[$1$]}, s' \right) \cdot O\left( o^{l1}=\texttt{no}, s', \pi_\text{OL}\texttt{[$1$]} \right)\\
+        &\cdot Z^{\pi_\text{OL}\texttt{[$2$:]}}\left( o^{l1}=n_i^{l1}, s_0^{l1'} \right)
+    \end{aligned}.
+\end{equation}
+
+Instead of using open-loop policies one could also use closed-loop policies on states $\pi(s)$. This corresponds to the option/macro-action model for MDPs described in \textcolor{red}{[ref][ref]}. It is also possible to use closed-loop policies on beliefs. Those would however be difficult to construct by hand and should be automatically constructed as is described in \textcolor{red}{[ref]}.
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\subsection{Method 01}
+\subsection{Reasoning on Multiple Spatial Scales}
+With the higher layer models it is now possible to solve each POMDP layer. In this subsection three different methods are shown on how the spatial layers can be combined. The methods differ in computation speed and lower layer reasoning ability. All methods consider a restricted state, action and observation space on the lower layers in order to get a speedup in computation time. 
+%
+\subsubsection{Method 01}\label{subsec:M1}
+The first method explores a master-slave relationship between the layers where the lower layer tries to execute the action chosen by the layer above. The lower layers considers as few variables and values as strictly needed to execute the higher layer action. The transition, reward and observatin model remain unchanged for the lower layers. To illustrate the concept an example of the restricted POMDP of layer 1 for each layer 0 action in the three room environment from figure \ref{fig:two_layers} is given.
+\begin{example}\label{ex:M1_nav}
+Consider the three room environment from figure \ref{fig:two_layers} where the agent is currently in node $x_a^{l0}=n_0^{l0}$. Solving layer 0 yields the action $a^{l0}=\texttt{nav($n_0^{l0},n_1^{l0}$)}$. The layer 1 POMDP only considers the nodes on layer 1 that are within the current layer 1 node $n_0^{l0}$ and the entry node to $n_1^{l0}$ which is $n_3^{l1}$. To navigate the agent the items do not need to be considered in this sub-problem which make layer 1 a MDP. The terminal state on layer 1 is when the agent is within the node $n_1^{l0}$. The action space consists of navigation actions only:
+\begin{equation}
+     \begin{aligned}[t] 
+        x_a^{l1} &\in \big\{n_0^{l1}, n_1^{l1}, n_2^{l1}, n_3^{l1}  \big\} \\
+        s_t^{l1} &= \begin{pmatrix}x_a^{l1}=n_3^{l1} \end{pmatrix}^\intercal\\
+        a^{l1} &\in \big\{\texttt{nav($n_0^{l1}, n_1^{l1}$)}, \texttt{nav($n_0^{l1}, n_2^{l1}$)}, \texttt{nav($n_1^{l1}, n_2^{l1}$)},\texttt{nav($n_2^{l1}, n_3^{l1}$)} \big\}
+    \end{aligned}
+\end{equation}
+\demo
+\end{example}
+
+\begin{example}
+Consider the same scenario as in example \ref{ex:M1_nav} but this time the agent is currently within $n_1^{l0}$ and the top layer action is a pickup action for the first item, i.e. $a^{l0}=\texttt{pickup}1$. On layer 1 the nodes considered are the ones within $n_1^{l0}$ and only the first item variable is necessary to perform the pickup action. The item variable can also take the value \texttt{not\_here} for which the initial belief is given as one minus the belief that the item is in $n_1^{l0}$. The action space also contains the \texttt{look\_around} action which should be used to find the item within the current node. The terminal state is reached when the item is on the agent:
+\begin{equation}
+    \begin{aligned}[t] 
+        x_a^{l1} &\in \big\{ n_3^{l1}, n_4^{l1}, n_5^{l1} \big\} \\
+        x_1^{l1} &\in  \big\{ n_3^{l1}, n_4^{l1}, n_5^{l1}, \texttt{not\_here}, \texttt{agent} \big\}\\
+         s_t^{l1} &= \begin{pmatrix} x_a^{l1} & x_1^{l1}=\texttt{agent} \end{pmatrix}^\intercal\\
+        o_1^{l1} &\in \big\{\texttt{no},n_3^{l1}, n_4^{l1}, n_5^{l1}, \texttt{agent} \big\}\\
+        a^{l1} &\in \big\{\texttt{nav($n_3^{l1}, n_4^{l1}$)}, \texttt{nav($n_3^{l1}, n_5^{l1}$)}, \texttt{nav($n_4^{l1}, n_5^{l1}$)}, \texttt{look\_around}, \texttt{pickup}1 \big\}
+        \end{aligned}
+\end{equation}
+ Note that the terminal state is unreachable if the item is not within $n_1^{l0}$. But since the POMDPs are solved in receding horizon, i.e. layer 0 is solved again after the first action of layer 1, this does not pose a problem.
+ \demo
+\end{example}
+
+\begin{example}
+In this example the agent is within $n_2^{l0}$ and carries the second item. Layer 0 chooses the \texttt{release} action. The terminal state in layer 1 is reached in any state where the item is not on the agent. Since the initial item value is observable and the transition model is deterministic this layer 1 sub-problem can be modelled as a MDP:
+\begin{equation}
+    \begin{aligned}[t] 
+        x_a^{l1} &\in \big\{ n_6^{l1}, n_7^{l1}, n_8^{l1} \big\} \\
+        x_2^{l1} &\in  \big\{ n_6^{l1}, n_7^{l1}, n_8^{l1}, \texttt{agent}, \texttt{goal} \big\}\\
+        s_t^{l1} &= \begin{pmatrix} x_a & x_2\in\left\{ n_6^{l1}, n_7^{l1}, n_8^{l1}, \texttt{goal} \right\} \end{pmatrix}\\
+        a^{l1} &\in \big\{\texttt{nav($n_6^{l1}, n_7^{l1}$)}, \texttt{nav($n_6^{l1}, n_8^{l1}$)}, \texttt{release} \big\}
+        \end{aligned}
+\end{equation}
+\demo
+\end{example}
+
+Method 01 yields a big speedup regarding computation time compared to solving the flat POMDP from section \ref{subsec:POMDPmodel} as the state, action and observation space of both layer 0 and layer 1 is smaller. The drawback is that the lower layers perform very little reasoning and just try to solve the action of the layer above in as little time as possible. Since the higher layers use a coarse resolution their proposed action could be suboptimal. Method 02 and Method 03 both address this drawback by giving the lower layers more flexibility and information about the entire problem.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\subsection{Method 02}
+\subsubsection{Method 02}\label{subsec:M2}
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\subsection{Method 03}
+\subsubsection{Method 03}\label{subsec:M3}
+
+\textcolor{red}{PROBLEM WENN MEHRERE TERMINAL STATES GIBT MUSS NOCH ERLEUTERT WERDEN!}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\subsection{Mixture Methods}
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\subsection{Properties}
+
+\subsection{Properties}\label{subsec:MultiScale_properties}
+\subsubsection{Scaling}
 \subsubsection{Suboptimality}
 \subsubsection{Stability Issues}
 
