@@ -397,11 +397,11 @@ In section \ref{subsec:MultiScale_overview} the hierarchical framework is explai
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{Overview} \label{subsec:MultiScale_overview}
-MultiScale methods first solves the top layer $l0$ which yields the value function $V(b^{l0})$ and the first action to execute $a^{l0}$ where the superscript $l0$ indicates that the variable belongs to layer 0. On the lower layers only a subset of the state, observation and action space is considered, determined by $a^{l0}$. The MultiScale methods presented do not compute the entire solution beforehand but only the next action to execute. In the following the hierarchical layout is shown in more detail and then the higher layer transition, reward and observation models are derivated.
+MultiScale methods first solves the top layer $l0$ which yields the value function $V(b^{l0})$ and the first action to execute $a^{l0}$ where the superscript $l0$ indicates that the variable belongs to layer 0. Next, layer 1 is solved and afterwards layer 2 and so on. On the lower layers only a subset of the state, observation and action space is considered, determined by the action of the layer above. The MultiScale methods presented do not compute the entire solution beforehand but only the next action to execute. In the following the hierarchical layout is shown in more detail and then the higher layer transition, reward and observation models are derivated.
 %%%%%%%%%%%%%%%%
 
 \subsubsection{Hierarchical Layout}
-The MultiScale POMDP arranges the environment into multiple layers with different discretisation levels. In figure \ref{fig:two_layers} the three room environment is shown for two different discretisation layers. Each node of layer 1 can be mapped to only one node of layer 0. To distinguish the variables and nodes of different layers the superscript $l0$ is used to indicate layer $0$. 
+The MultiScale POMDP arranges the environment into multiple layers with different discretisation levels. In figure \ref{fig:two_layers} the three room environment is shown for two different discretisation layers. Each node of layer 1 can be mapped to only one node of layer 0. The node-layout is chosen manually for the examples of this thesis. 
 \begin{figure}
     \centering
     \begin{subfigure}[b]{0.48\textwidth}
@@ -566,10 +566,11 @@ Instead of using open-loop policies one could also use closed-loop policies on s
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{Reasoning on Multiple Spatial Scales}
-With the higher layer models it is now possible to solve each POMDP layer. In this subsection three different methods are shown on how the spatial layers can be combined. The methods differ in computation speed and lower layer reasoning ability. All methods consider a restricted state, action and observation space on the lower layers in order to get a speedup in computation time. 
+With the higher layer models it is now possible to solve each POMDP layer. In this subsection three different methods are shown on how the spatial layers can be combined. The methods differ in computation speed and lower layer reasoning ability. 
+All methods consider a restricted state, action and observation space on the lower layers in order to get a speedup in computation time. 
 %
 \subsubsection{Method 01}\label{subsec:M1}
-The first method explores a master-slave relationship between the layers where the lower layer tries to execute the action chosen by the layer above. The lower layers considers as few variables and values as strictly needed to execute the higher layer action. The transition, reward and observatin model remain unchanged for the lower layers. To illustrate the concept an example of the restricted POMDP of layer 1 for each layer 0 action in the three room environment from figure \ref{fig:two_layers} is given.
+The first method explores a master-slave relationship between the layers where the lower layer tries to execute the action chosen by the layer above. The lower layers considers as few variables and values as strictly needed to execute the higher layer action. The transition, reward and observatin model remain unchanged for the lower layers. To illustrate the concept an example of the restricted POMDP of layer 1 for each layer 0 action is given.
 \begin{example}\label{ex:M1_nav}
 Consider the three room environment from figure \ref{fig:two_layers} where the agent is currently in node $x_a^{l0}=n_0^{l0}$. Solving layer 0 yields the action $a^{l0}=\texttt{nav($n_0^{l0},n_1^{l0}$)}$. The layer 1 POMDP only considers the nodes on layer 1 that are within the current layer 1 node $n_0^{l0}$ and the entry node to $n_1^{l0}$ which is $n_3^{l1}$. To navigate the agent the items do not need to be considered in this sub-problem which make layer 1 a MDP. The terminal state on layer 1 is when the agent is within the node $n_1^{l0}$. The action space consists of navigation actions only:
 \begin{equation}
@@ -609,19 +610,158 @@ In this example the agent is within $n_2^{l0}$ and carries the second item. Laye
 \end{equation}
 \demo
 \end{example}
+%
+If layer $i$ chooses a navigation action there can be an ambiguity on the layer $i+1$ below if there are multiple terminal states within the same higher layer node. See figure \ref{subfig:longroute} for a illustration. The agent is currently in node $n_1^{l2}$ and the terminal states are $n_4^{l2}$ and $n_6^{l2}$ both lie in the same node $n_1^{l1}$ on layer 1. Layer 2 will navigate to $n_4^{l2}$ since this minimizes the time to get to a terminal state. In the next time step the layer 1 POMDP will choose the \texttt{pickup}$1$ action to grasp the item in node $n_6^{l2}$. Without further treatment the agent drives from the current node $n_1^{l2}$ to $n_4^{l6}$ and then to $n_6^{l2}$ instead of directly navigating from $n_1^{l2}$ to $n_6^{l2}$. \\
+To get the desired behaviour shown in image (\subref{subfig:shortroute}) two POMDP problems on layer 2 need to be solved. First, layer 0 and layer 1 are solved to get the first action to execute. Then, the expected second action $a_\text{next}^{l1}$ on layer 1 is computed. In the situation depicted in figure \ref{subfig:shortroute} $a_\text{next}^{l1}$ can directly be computed from the value function as $n_1^{l1}$ is not a terminal state on layer 1. Now the  POMDP on layer 2 for $a_\text{next}^{l1}$ is computed yielding the value function $V_\text{next}(b^{l2})$. Finally, the current layer 2 POMDP can be solved where the value function for the next POMDP problem is used as terminal state reward, i.e. the reward the agent receives for transitioning to a terminal state. In equation \ref{eq:R_t_next} the terminal state reward for transitioning to node $n_4^{l2}$ assuming that the item is in node $n_6^{l2}$ is shown.
+\begin{multline}\label{eq:R_t_next}
+    R\big( s=\begin{pmatrix} x_a^{l2}=n_1^{l2} & x_1^{l2}=n_6^{l2} \end{pmatrix}^\intercal, a=\texttt{nav($n_1^{l2}, n_4^{l2}$)} \big) = \\
+    V_\text{next}\big( x_a^{l2}=n_4^{l2}, b^{l2}(x_1^{l2}=n_6^{l2})=1 \big)
+\end{multline}
+Such a terminal state reward exists for all $x_a^{l2}, x_1^{l2}$ combinations. With this terminal state reward the agent now chooses the \texttt{nav($n_1^{l2}, n_6^{l2}$)} action as the value at node $n_6^{l2}$ is larger than in node $n_4^{l2}$. The pseudo code for Method 01 is given in algorithm \ref{algo:M1}. Note that the described problematic occurs for Method 02 and Method 03 as well and is solved with the same algorithmic solution. 
+\begin{figure}
+    \centering
+    \begin{subfigure}[b]{0.45\textwidth}
+        \includegraphics[width=\textwidth]{Report/images/two_terminal_states_longroute.png}
+        \caption[t]{Solving one POMDP on layer 2}
+        \label{subfig:longroute}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[b]{0.45\textwidth}
+        \includegraphics[width=\textwidth]{Report/images/two_terminal_states_shortroute.png}
+        \caption{Solving two POMDPs on layer 2}
+        \label{subfig:shortroute}
+    \end{subfigure}
+    \caption{Example situation where the layer 1 action $a^{l1}$ is \texttt{nav($n_0^{l1},n_1^{l1}$)}. The black dot represents the agent's start position and the pink square the first item. In \subref{subfig:longroute} the scenario where only one POMDP is solved on layer 2 is shown and in \subref{subfig:shortroute} the same scenario when two layer 2 POMDPs are solved.}
+    \label{fig:two_terminal_states}
+\end{figure}
+%
+\begin{algorithm}[htb!]
+    \DontPrintSemicolon
+    \caption{Method 01}
+    \label{algo:M1}
+    \SetKwInOut{Input}{input}
+    \SetKwInOut{Output}{output}
+    \Input{adf}
+    \Output{asdf}
+        $x = x$    \tcp*[r]{comment here}
+        \For{$i \leftarrow 0$ \KwTo nSteps}{
+            $p_i \leftarrow p_i + \text{incrLoad}$ \;
+        }
+\end{algorithm}
 
-Method 01 yields a big speedup regarding computation time compared to solving the flat POMDP from section \ref{subsec:POMDPmodel} as the state, action and observation space of both layer 0 and layer 1 is smaller. The drawback is that the lower layers perform very little reasoning and just try to solve the action of the layer above in as little time as possible. Since the higher layers use a coarse resolution their proposed action could be suboptimal. Method 02 and Method 03 both address this drawback by giving the lower layers more flexibility and information about the entire problem.
+Method 01 yields a big speedup regarding computation time compared to solving the flat POMDP from section \ref{subsec:POMDPmodel} as the state, action and observation space of both layer 0 and layer 1 is smaller. The drawback is that the lower layers perform very little reasoning and just try to solve the action of the layer above in as little time as possible. Since the higher layers use a coarse resolution their proposed action could be suboptimal. In chapter \ref{sec:results} it is shown that such problems start to occur for larger environments where more than two layers are used. One particular problematic for large environments is inconsistent search behaviour where the Method 01 agent stops the search in a room and goes to another room even tough some left-over belief was very close to the agent. See section \ref{sec:cornercases} for a detailed example. 
+The next two methods address those issues by giving the lower layers more flexibility and information about the entire problem.\\
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsubsection{Method 02}\label{subsec:M2}
+The second method aims to improve the lower layer reasoning while still yielding a large computational speedup. The lower layers access the value function of the layer above to get global context about the problem. The value function can be incorporated through the terminal state reward, i.e. the reward which the agent receives for transitioning to a terminal state as is shown in example \ref{ex:M2_nav}. The lower layers can for example choose to explore the current state space before executing the proposed action of the layer above. This changes the belief at the terminal state and therefore the terminal state reward. Similarly as for Method 01, the state, action and observation space of the lower layers is determined by the higher layer state and action. However, all item variables are considered on every layer.
 
+\begin{example}\label{ex:M2_nav}
+Consider the same situation as in example \ref{ex:M1_nav} and assume that the task involves two items. In contrast to Method 01, Method 02 considers both item variables on layer 1 and the action space contains the \texttt{look\_around} action.
+\begin{equation}
+    \begin{aligned}
+         x_a^{l1} &\in \big\{n_0^{l1}, n_1^{l1}, n_2^{l1}, n_3^{l1}  \big\} \\
+         x_1^{l1} &\in \big\{n_0^{l1}, n_1^{l1}, n_2^{l1}, n_3^{l1}, \texttt{not\_here} \big\} \ni x_2^{l1}\\
+        s_t^{l1} &= \begin{pmatrix}x_a^{l1}=n_3^{l1} & x_1^{l1} & x_2^{l1} \end{pmatrix}^\intercal\\
+        a^{l1} &\in \big\{\texttt{nav($n_0^{l1}, n_1^{l1}$)}, \texttt{nav($n_0^{l1}, n_2^{l1}$)}, \texttt{nav($n_1^{l1}, n_2^{l1}$)},\texttt{nav($n_2^{l1}, n_3^{l1}$)}, \texttt{look\_around)} \big\}
+    \end{aligned}
+\end{equation}
+This gives layer 1 the flexibility to search the first room before driving to the second room. The terminal state reward is an additional reward which is defined through the value function of layer 0. Note that there are 25 terminal states for all $x_1, x_2$ combinations. The terminal reward where the first item is in $n_1^{l1}$ and the second item in $n_3^{l1}$ is given by:  
+\begin{multline}
+    R_\text{terminal}\big(s^{l1}=\begin{pmatrix} x_a^{l1}=n_2^{l1} & x_1^{l1} = n_1^{l1} & x_2^{l1} = n_3^{l1} \end{pmatrix}^\intercal, a^{l1}=\texttt{nav($n_2^{l1},n_3^{l1}$)}\big)=\\
+    V\big( x_a^{l0}=n_1^{l0}, b(x_1^{l0}=n_0^{l0})=1, b(x_2^{l0}=n_1^{l0})=1 \big)
+\end{multline}
+The belief $b^{l0}$ at the terminal state can be altered through the actions that the agent chooses. Through changing $b^{l0}$ the expected terminal reward changes (see equation \ref{eq:R_b}), thus giving layer 1 context about the entire problem. 
+\demo
+\end{example}
+The improved lower layer reasoning leads to better solutions as is shown in chapter \ref{sec:results} but comes with the disadvantage of slightly longer computation times as all items are considered in the lower layers. Method 02 resolves the inconsistency problems of Method 01 as the lower layers tend to do more exploring. However, the lower layers still have to follow the proposed action of the above layers. Method 03 resolves this limitation by adding additional terminal states to the lower layers.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsubsection{Method 03}\label{subsec:M3}
+The third method improves the lower layer reasoning by lifting the state restrictions coming from the proposed action of the above layer. The lower layer POMDPs are instead guided by the value function of the layer above which is incorporated as explained in Method 02. The concept is demonstrated in example \ref{ex:M3}.
 
-\textcolor{red}{PROBLEM WENN MEHRERE TERMINAL STATES GIBT MUSS NOCH ERLEUTERT WERDEN!}
+\begin{example}\label{ex:M3}
+Consider a task with one item in the three room environment where the agent is currently in the second room, i.e. $x_a^{l0}=n_1^{l0}$. Solving layer 0 yields the value function $V(b^{l0})$. The restricted state, action and observation space is determined solely by the agent variable of layer 0. Terminal states are reached when the agent leaves the current room or if he successfully grasps an item:
+\begin{equation}
+    \begin{aligned}
+        x_a^{l1} &\in \big\{ n_2^{l1}, n_3^{l1}, n_4^{l1}, n_5^{l1}, n_6^{l1} \big\} \\
+        x_1^{l1} &\in  \big\{ n_2^{l1}, n_3^{l1}, n_4^{l1}, n_5^{l1}, n_6^{l1}, \texttt{not\_here}, \texttt{agent} \big\}\\
+         s_t^{l1} &\in \big\{\begin{pmatrix} x_a^{l1}=n_2^{l1} & x_1^{l1} \end{pmatrix}^\intercal, \begin{pmatrix} x_a^{l1}=n_6^{l1} & x_1^{l1} \end{pmatrix}^\intercal,  \begin{pmatrix} x_a^{l1} & x_1^{l1}=\texttt{agent} \end{pmatrix}^\intercal \big\}\\
+        o_1^{l1} &\in \big\{\texttt{no}, n_2^{l1}, n_3^{l1}, n_4^{l1}, n_5^{l1}, n_6^{l1}, \texttt{agent} \big\}\\
+        a^{l1} &\in \big\{\texttt{nav($n_2^{l1}, n_3^{l1}$)}, \cdots,  \texttt{nav($n_5^{l1}, n_6^{l1}$)}, \texttt{look\_around}, \texttt{pickup}1 \big\}
+    \end{aligned}
+\end{equation}
+\demo
+\end{example}
+Layer 1 has therefore complete freedom in its action and does not need to follow the proposed action of layer 0 as was the case with Method 01 and Method 02. Through the better resolution of layer 1 the agent can sometimes correct for model approximation/discretisation errors of layer 0. See section \ref{sec:cornercases} for an example task in a large office environment where Method 03 performs a faster delivery than Method 01/02 because the lower layers choose a different path than layer 0 proposed. As one can see in the example the state, action and observation space is larger than for Method 01/02 which increases computation time.\\
+
+The current implementation of Method 03 comes with stability issues. In some situations the agent gets stuck navigating in between two nodes forever. The problem is illustrated with a made up scenario shown in figure \ref{fig:stability}. The agent is currently in node $n_1^{l1}$ and the item is in $n_3^{l1}$ with belief 1 which makes this problem essentially a MDP. Three terminal states are considered, one where the agent successfully  grasps the item and two at the layer 0 node $n_2^{l0}$:
+\begin{equation}
+    \begin{aligned}[t]
+        s_{t,1} &= \begin{pmatrix}x_a^{l1} & x_1=\texttt{agent}\end{pmatrix}^\intercal \\
+        s_{t,2} &= \begin{pmatrix}x_a^{l1}=n_9^{l1} & x_1\end{pmatrix}^\intercal\\
+        s_{t,3} &= \begin{pmatrix}x_a^{l1}=n_{10}^{l1} & x_1\end{pmatrix}^\intercal
+    \end{aligned}
+\end{equation}
+%
+The terminal state reward for the first terminal state where the item is on the agent is given through the value function of layer 0 as
+\begin{equation}
+    r_{\text{terminal,}1} = V\left(x_a^{l0}=n_0^{l0}, b(x_\text{mug}=\texttt{agent})=1\right).    
+\end{equation}
+The expected return under policy $\pi_1$ which navigates the agent to the item and picks it up is given by
+
+\begin{equation}
+    \begin{aligned}
+        V^{\pi_1} = &r_\text{time}(x_a=n_1^{l1}, a^{l1}=\texttt{nav($n_1^{l1}, n_2^{l1}$)})\\ 
+        &+ \gamma\cdot r_\text{time}(x_a=n_2^{l1}, a^{l1}=\texttt{nav($n_2^{l1}, n_3^{l1}$)}) + \gamma^2 \cdot (r_\text{pickup} + r_{\text{terminal,}2})
+    \end{aligned}.
+\end{equation}
+Similarly, the terminal state reward for the second terminal state $s_{t,2}$ is given by equation \ref{eq:r_terminal2} and the value of following policy $\pi_2$ which brings the agent to the second terminal state is shown in formula \ref{eq:Vpi2}.
+\begin{equation}\label{eq:r_terminal2}
+    r_{\text{terminal,}2} = V\left( x_a^{l0}=n_2^{l0}, b(x_\text{mug}=n_0^{l0})=1 \right)
+\end{equation}
+%
+\begin{equation}\label{eq:Vpi2}
+V^{\pi_2}=r_\text{time}\left( x_a^{l0}=n_1^{l1}, a=\texttt{nav($n_1^{l1}, n_9^{l1}$)} \right) + \gamma \cdot r_{\text{terminal,}2}
+\end{equation}
+If $V^{\pi_2}$ is larger than $V^{\pi_1}$ the agent drives to node $n_9^{l1}$ instead of picking the item up. In the next move the agent will then drive back to node $n_1^{l1}$ as the item is within node $n_0^{l0}$. Thus, the initial situation is restored and the process starts again. The reason that $V^{\pi_2}$ could mistakenly be larger than $V^{\pi_1}$ is that $r_{\text{terminal},2}$ is given by the value function of layer 0. The value function at $x_a^{l0}=n_2^{l0}$ reflects that the agent is going to navigate from $n_2^{l0}$ to $n_0^{l2}$ in the next move and is then going to grasp the item. Layer 0 uses the estimated reward functions created by averaging rewards of layer 1 as explained in section \ref{subsec:MultiScale_overview}. Since the item is far away from the agent the actual value function for picking the item up is smaller than layer 0 estimated. This makes the terminal state at $n_9^{l1}$ which can be reached with only small time penalty more attractive. In real scenarios such instability problems mostly occur if the problem has a broad belief distribution. For such cases the upper layer reward models are overconfident as they were created assuming simple open-loop policies.   
+
+\begin{figure}
+    \centering
+    \includegraphics[width=0.5\textwidth]{Report/images/stability.png}
+    \caption{Made-up scenario in a large office environment where the agent, represented as black circle, gets stuck driving in between node $n_1^{l1}$ and $n_9^{l1}$}.
+    \label{fig:stability}
+\end{figure}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \subsection{Properties}\label{subsec:MultiScale_properties}
+A qualitative comparison of some of the properties of the different MultiScale methods and the flat POMDP agent (section \ref{sec:POMDPagent}) are summarized in table \ref{tab:properties}.  The MultiScale methods split one large POMDP into multiple smaller POMDPs. With the hierarchical layout from figure \ref{fig:3levelsarchitecture} where each node in is split into 4 subnodes on the next lower layer a logarithmic relationship between the number of nodes in the flat problem and the number of layers in the hierarchy is given:
+\begin{equation}
+    N_\text{layers} \sim \log_4 N_\text{nodes}.
+\end{equation}
+This is a nice scaling property as the number of layers is proportional\footnote{as explained for Method 01 there are cases where multiple POMDP problems need to be solved on one layer.} to the number of POMDP problems which need to be solved. \\
+\begin{table}[h!]
+    \centering
+    \begin{tabular}{l c c c c}
+    \toprule
+         &  M1 & M2 & M3 & Flat\\
+    \midrule
+        \addlinespace
+         comp. speed & $+++$ & $++$ & $+$ & $---$ \\
+         \addlinespace
+         consistency & $-$ & $+$ & $+$ & $++$ \\
+         \addlinespace
+         lower layer reasoning & $-$ & $+$ & $++$ & $+++$ \\
+         \addlinespace
+         stability issues & no & no& yes & no\\
+         \addlinespace
+    \bottomrule
+    \end{tabular}
+    \caption{Qualitative comparison of the different POMDP agents}
+    \label{tab:properties}
+\end{table}
+The 
+
 \subsubsection{Scaling}
 \subsubsection{Suboptimality}
-\subsubsection{Stability Issues}
+
 

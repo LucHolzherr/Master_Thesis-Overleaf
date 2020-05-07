@@ -121,7 +121,7 @@ where in \ref{eq:line2} the conditional independency of $o$ and $b$ given $s'$ i
     V^*(b) = \underset{a\in\mathcal{A}}{\max}\left( R(b,a) + \gamma\cdot \sum_{o\in\mathcal{O}} p(o|b,a)V^*(b') \right).
 \end{equation}
 where $b'$ is given by equation \ref{eq:bdash}. $R(b,a)$ is the reward of choosing action $a$ in belief $b$ and is computed as a linear combination of the reward model
-\begin{equation}
+\begin{equation}\label{eq:R_b}
     R(b,a) = \sum_{s\in\mathcal{S}}R(s,a)\cdot b(s).
 \end{equation}
 With the formulation of \ref{eq:BEPOMDP} the POMDP is written as a MDP where the state is replaced by the belief $b$, the reward model is given by $R(b,s)$ and the transition model by $P(o|b,a)$.\\
