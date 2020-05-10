@@ -378,7 +378,7 @@ where \texttt{b\_m} is the median belief value of the current node, \texttt{b\_m
 
 The behaviour of the release subroutine depends on the current node the agent is in. If the goal location of the carried item is within the current node, the subroutine sets the shortest path to the goal location as reference and then releases the item. Otherwise, the item is just released at the agents location. The action finishes as soon as the before carried item is not on the agent anymore.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\subsection{Model Extensions}
+\subsection{Model Extensions}\label{subsec:POMDP_extensions}
 This subsection looks at the assumptions made in the problem definition (section \ref{sec:problemdef}) and how they can be loosened by adapting the above presented POMDP problem. \\
 
 One of the most unrealistic assumptions is the absence of furniture. In most offices mugs do not lie on the floor [\textit{citation needed}] but are in a cupboard,in the dishwasher or on a table. A furniture can be added to the POMDP model by handling it as a node. The \texttt{look\_around} and pickup subroutine would need to be adapted to be able to interact with it. Further, the observation probability for navigating to the furniture needs to be adapted. For a cupboard the probability of observing the mug while approaching the cupboard should be zero assuming that the cupboard is closed while the mug could be spotted if it is on a table.\\

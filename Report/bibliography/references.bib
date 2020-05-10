@@ -1,29 +1,197 @@
-@book{Raibert1986LeggedRobotsThatBalance,
-address = {Cambridge, MA},
-author = {Raibert, Marc},
-isbn = {0262181177},
-publisher = {MIT Press},
-title = {{Legged Robots That Balance}},
-url = {http://portal.acm.org/citation.cfm?id=6152&dl=GUIDE},
-year = {1986}
+
+@article{KAELBLING199899,
+title = "Planning and acting in partially observable stochastic domains",
+journal = "Artificial Intelligence",
+volume = "101",
+number = "1",
+pages = "99 - 134",
+year = "1998",
+issn = "0004-3702",
+doi = "https://doi.org/10.1016/S0004-3702(98)00023-X",
+url = "http://www.sciencedirect.com/science/article/pii/S000437029800023X",
+author = "Leslie Pack Kaelbling and Michael L. Littman and Anthony R. Cassandra",
+keywords = "Planning, Uncertainty, Partially observable Markov decision processes",
+abstract = "In this paper, we bring techniques from operations research to bear on the problem of choosing optimal actions in partially observable stochastic domains. We begin by introducing the theory of Markov decision processes (mdps) and partially observable MDPs (pomdps). We then outline a novel algorithm for solving pomdps off line and show how, in some cases, a finite-memory controller can be extracted from the solution to a POMDP. We conclude with a discussion of how our approach relates to previous work, the complexity of finding exact solutions to pomdps, and of some possibilities for finding approximate solutions."
 }
-@article{Vukobratovic2004ZeroMomentPoint,
-author = {Vukobratovi\'{c}, Miomir and Borovac, Branislav},
-issn = {0219-8436},
-journal = {International Journal of Humanoid Robotics},
-number = {01},
-pages = {157--173},
-publisher = {World Scientific},
-title = {{Zero-moment point — thirty five years of its life}},
-volume = {1},
-year = {2004}
+
+@inproceedings{10.5555/1630659.1630806,
+author = {Pineau, Joelle and Gordon, Geoff and Thrun, Sebastian},
+title = {Point-Based Value Iteration: An Anytime Algorithm for POMDPs},
+year = {2003},
+publisher = {Morgan Kaufmann Publishers Inc.},
+address = {San Francisco, CA, USA},
+booktitle = {Proceedings of the 18th International Joint Conference on Artificial Intelligence},
+pages = {1025–1030},
+numpages = {6},
+location = {Acapulco, Mexico},
+series = {IJCAI’03}
 }
-@inproceedings{Pratt1995SEA,
-author = {Pratt, Gill A. and Williamson, Matthew M.},
-booktitle = {IEEE/RSJ International Conference on Intelligent Robots and Systems (IROS)},
-doi = {10.1109/IROS.1995.525827},
-pages = {3137--3181},
-title = {{Series elastic actuators}},
-url = {http://ieeexplore.ieee.org/lpdocs/epic03/wrapper.htm?arnumber=525827},
-year = {1995}
+
+@article{Spaan_2005,
+   title={Perseus: Randomized Point-based Value Iteration for POMDPs},
+   volume={24},
+   ISSN={1076-9757},
+   url={http://dx.doi.org/10.1613/jair.1659},
+   DOI={10.1613/jair.1659},
+   journal={Journal of Artificial Intelligence Research},
+   publisher={AI Access Foundation},
+   author={Spaan, M. T.J. and Vlassis, N.},
+   year={2005},
+   month={Aug},
+   pages={195–220}
 }
+
+@INBOOK{6284837,
+  author={O. {Brock} and J. {Trinkle} and F. {Ramos}},
+  booktitle={Robotics: Science and Systems IV}, 
+  title={SARSOP: Efficient Point-Based POMDP Planning by Approximating Optimally Reachable Belief Spaces}, 
+  year={2009},
+  volume={},
+  number={},
+  pages={65-72},}
+  
+  @incollection{NIPS2013_5189,
+title = {DESPOT: Online POMDP Planning with Regularization},
+author = {Somani, Adhiraj and Ye, Nan and Hsu, David and Lee, Wee Sun},
+booktitle = {Advances in Neural Information Processing Systems 26},
+editor = {C. J. C. Burges and L. Bottou and M. Welling and Z. Ghahramani and K. Q. Weinberger},
+pages = {1772--1780},
+year = {2013},
+publisher = {Curran Associates, Inc.},
+url = {http://papers.nips.cc/paper/5189-despot-online-pomdp-planning-with-regularization.pdf}
+}
+
+@incollection{NIPS2010_4031,
+title = {Monte-Carlo Planning in Large POMDPs},
+author = {Silver, David and Veness, Joel},
+booktitle = {Advances in Neural Information Processing Systems 23},
+editor = {J. D. Lafferty and C. K. I. Williams and J. Shawe-Taylor and R. S. Zemel and A. Culotta},
+pages = {2164--2172},
+year = {2010},
+publisher = {Curran Associates, Inc.},
+url = {http://papers.nips.cc/paper/4031-monte-carlo-planning-in-large-pomdps.pdf}
+}
+
+@Inbook{Bai2011,
+author="Bai, Haoyu
+and Hsu, David
+and Lee, Wee Sun
+and Ngo, Vien A.",
+editor="Hsu, David
+and Isler, Volkan
+and Latombe, Jean-Claude
+and Lin, Ming C.",
+title="Monte Carlo Value Iteration for Continuous-State POMDPs",
+bookTitle="Algorithmic Foundations of Robotics IX: Selected Contributions of the Ninth International Workshop on the Algorithmic Foundations of Robotics",
+year="2011",
+publisher="Springer Berlin Heidelberg",
+address="Berlin, Heidelberg",
+pages="175--191",
+abstract="Partially observable Markov decision processes (POMDPs) have been successfully applied to various robot motion planning tasks under uncertainty. However, most existing POMDP algorithms assume a discrete state space, while the natural state space of a robot is often continuous. This paper presents MonteCarloValueIteration (MCVI) for continuous-state POMDPs. MCVI samples both a robot's state space and the corresponding belief space, and avoids inefficient a priori discretization of the state space as a grid. Both theoretical results and preliminary experimental results indicate that MCVI is a promising new approach for robot motion planning under uncertainty.",
+isbn="978-3-642-17452-0",
+doi="10.1007/978-3-642-17452-0_11",
+url="https://doi.org/10.1007/978-3-642-17452-0_11"
+}
+
+@TECHREPORT{Pineau02anintegrated,
+    author = {Joelle Pineau and Sebastian Thrun},
+    title = {An integrated approach to hierarchy and abstraction for POMDPs},
+    institution = {},
+    year = {2002}
+}
+
+@article{DBLP:journals/corr/abs-1301-7381,
+  author    = {Milos Hauskrecht and
+               Nicolas Meuleau and
+               Leslie Pack Kaelbling and
+               Thomas L. Dean and
+               Craig Boutilier},
+  title     = {Hierarchical Solution of Markov Decision Processes using Macro-actions},
+  journal   = {CoRR},
+  volume    = {abs/1301.7381},
+  year      = {2013},
+  url       = {http://arxiv.org/abs/1301.7381},
+  archivePrefix = {arXiv},
+  eprint    = {1301.7381},
+  timestamp = {Mon, 13 Aug 2018 16:46:06 +0200},
+  biburl    = {https://dblp.org/rec/journals/corr/abs-1301-7381.bib},
+  bibsource = {dblp computer science bibliography, https://dblp.org}
+}
+
+@article{SUTTON1999181,
+title = "Between MDPs and semi-MDPs: A framework for temporal abstraction in reinforcement learning",
+journal = "Artificial Intelligence",
+volume = "112",
+number = "1",
+pages = "181 - 211",
+year = "1999",
+issn = "0004-3702",
+doi = "https://doi.org/10.1016/S0004-3702(99)00052-1",
+url = "http://www.sciencedirect.com/science/article/pii/S0004370299000521",
+author = "Richard S. Sutton and Doina Precup and Satinder Singh",
+keywords = "Temporal abstraction, Reinforcement learning, Markov decision processes, Options, Macros, Macroactions, Subgoals, Intra-option learning, Hierarchical planning, Semi-Markov decision processes",
+abstract = "Learning, planning, and representing knowledge at multiple levels of temporal abstraction are key, longstanding challenges for AI. In this paper we consider how these challenges can be addressed within the mathematical framework of reinforcement learning and Markov decision processes (MDPs). We extend the usual notion of action in this framework to include options—closed-loop policies for taking action over a period of time. Examples of options include picking up an object, going to lunch, and traveling to a distant city, as well as primitive actions such as muscle twitches and joint torques. Overall, we show that options enable temporally abstract knowledge and action to be included in the reinforcement learning framework in a natural and general way. In particular, we show that options may be used interchangeably with primitive actions in planning methods such as dynamic programming and in learning methods such as Q-learning. Formally, a set of options defined over an MDP constitutes a semi-Markov decision process (SMDP), and the theory of SMDPs provides the foundation for the theory of options. However, the most interesting issues concern the interplay between the underlying MDP and the SMDP and are thus beyond SMDP theory. We present results for three such cases: (1) we show that the results of planning with options can be used during execution to interrupt options and thereby perform even better than planned, (2) we introduce new intra-option methods that are able to learn about an option from fragments of its execution, and (3) we propose a notion of subgoal that can be used to improve the options themselves. All of these results have precursors in the existing literature; the contribution of this paper is to establish them in a simpler and more general setting with fewer changes to the existing reinforcement learning framework. In particular, we show that these results can be obtained without committing to (or ruling out) any particular approach to state abstraction, hierarchy, function approximation, or the macro-utility problem."
+}
+
+@article{FOKA2007561,
+title = "Real-time hierarchical POMDPs for autonomous robot navigation",
+journal = "Robotics and Autonomous Systems",
+volume = "55",
+number = "7",
+pages = "561 - 571",
+year = "2007",
+issn = "0921-8890",
+doi = "https://doi.org/10.1016/j.robot.2007.01.004",
+url = "http://www.sciencedirect.com/science/article/pii/S0921889007000279",
+author = "Amalia Foka and Panos Trahanias",
+keywords = "Robot navigation, Partially observable Markov decision processes (POMDP), Hierarchical POMDP",
+abstract = "This paper proposes a new hierarchical formulation of POMDPs for autonomous robot navigation that can be solved in real-time, and is memory efficient. It will be referred to in this paper as the Robot Navigation–Hierarchical POMDP (RN-HPOMDP). The RN-HPOMDP is utilized as a unified framework for autonomous robot navigation in dynamic environments. As such, it is used for localization, planning and local obstacle avoidance. Hence, the RN-HPOMDP decides at each time step the actions the robot should execute, without the intervention of any other external module for obstacle avoidance or localization. Our approach employs state space and action space hierarchy, and can effectively model large environments at a fine resolution. Finally, the notion of the reference POMDP is introduced. The latter holds all the information regarding motion and sensor uncertainty, which makes the proposed hierarchical structure memory efficient and enables fast learning. The RN-HPOMDP has been experimentally validated in real dynamic environments."
+}
+
+@article{rmax,
+author = {Jong, Nicholas and Stone, Peter},
+year = {2008},
+month = {01},
+pages = {},
+title = {Hierarchical model-based reinforcement learning: R-MAX + MAXQ},
+journal = {Proceedings of the 25th International Conference on Machine Learning},
+doi = {10.1145/1390156.1390211}
+}
+
+@inproceedings{Gopalan2017PlanningWA,
+  title={Planning with Abstract Markov Decision Processes},
+  author={Nakul Gopalan and Marie desJardins and Michael L. Littman and James MacGlashan and Shawn Squire and Stefanie Tellex and John Winder and Lawson L. S. Wong},
+  booktitle={ICAPS},
+  year={2017}
+}
+
+@inproceedings{Lanighan2018PlanningRM,
+  title={Planning Robust Manual Tasks in Hierarchical Belief Spaces},
+  author={Michael Lanighan and Takeshi Takahashi and Roderic A. Grupen},
+  booktitle={ICAPS},
+  year={2018}
+}
+
+@INPROCEEDINGS{7140035,
+  author={S. {Omidshafiei} and A. {Agha-mohammadi} and C. {Amato} and J. P. {How}},
+  booktitle={2015 IEEE International Conference on Robotics and Automation (ICRA)}, 
+  title={Decentralized control of Partially Observable Markov Decision Processes using belief space macro-actions}, 
+  year={2015},
+  volume={},
+  number={},
+  pages={5962-5969},}
+  
+ @article{10.2307/168926,
+ ISSN = {0030364X, 15265463},
+ URL = {http://www.jstor.org/stable/168926},
+ abstract = {This paper formulates the optimal control problem for a class of mathematical models in which the system to be controlled is characterized by a finite-state discrete-time Markov process. The states of this internal process are not directly observable by the controller; rather, he has available a set of observable outputs that are only probabilistically related to the internal state of the system. The formulation is illustrated by a simple machine-maintenance example, and other specific application areas are also discussed. The paper demonstrates that, if there are only a finite number of control intervals remaining, then the optimal payoff function is a piecewise-linear, convex function of the current state probabilities of the internal Markov process. In addition, an algorithm for utilizing this property to calculate the optimal control policy and payoff function for any finite horizon is outlined. These results are illustrated by a numerical example for the machine-maintenance problem.},
+ author = {Richard D. Smallwood and Edward J. Sondik},
+ journal = {Operations Research},
+ number = {5},
+ pages = {1071--1088},
+ publisher = {INFORMS},
+ title = {The Optimal Control of Partially Observable Markov Processes Over a Finite Horizon},
+ volume = {21},
+ year = {1973}
+}
+
