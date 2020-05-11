@@ -52,6 +52,7 @@
 \def\ci{\perp\!\!\!\perp}
 \DeclareMathOperator*{\argmax}{arg\,max}
 \DeclareMathOperator*{\argmin}{arg\,min}
+\DeclareMathOperator{\atantwo}{atan2}
 
 % Nice fractions
 \usepackage{nicefrac}
@@ -66,6 +67,7 @@
 
 % Units
 \usepackage{units}
+\usepackage{siunitx}
 
 % Rotated objects
 \usepackage{rotating}
@@ -98,6 +100,7 @@
 % \newtheoremstyle{example}{}{}{}{}{\bfseries}{\smallskip}{\newline}{}
 % \theoremstyle{example}
 % \newtheorem{example}{Example}
+% \numberwithin{example}{chapter}
 
 \usepackage{ntheorem}
 %\theoremstyle{break}
@@ -117,5 +120,8 @@
 
 % Algorithms
 \usepackage[boxed, ruled,]{algorithm2e}
-\newcommand\mycommfont[1]{\footnotesize\ttfamily\textcolor{blue}{#1}}
+%\newcommand\mycommfont[1]{\footnotesize\ttfamily\textcolor{blue}{#1}}
+\newcommand\mycommfont[1]{\footnotesize\ttfamily\textcolor{darkgreen}{#1}}
 \SetCommentSty{mycommfont}
+
+\usepackage{hyperref}

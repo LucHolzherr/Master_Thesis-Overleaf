@@ -1,6 +1,6 @@
 \chapter{Object-Search Methods}
 \label{sec:object_search}
-In this chapter different methods to solve object search and delivery tasks are presented. The agent has to perform a search and delivery task in a closed environment involving multiple items and with prior uncertain knowledge about the items location. First, a more formal problem definition is given in \ref{sec:problemdef} and the underlying assumptions are discussed. In section \ref{sec:baseline} a greedy next-best-view algorithm is described which serves as the baseline for the POMDP agents. Section \ref{sec:POMDPagent} covers the POMDP agent and the underlying system architecture. Finally, in section \ref{sec:MultiScale} a novel MultiScale POMDP solving method is presented. The original POMDP structure is split into multiple POMDP problems with different spatial-resolutions. The problem is first solved in the lowest resolution POMDP and its solution is then refined in the successive POMDPs. This approach yields large computational speedups while producing qualitative solutions.  
+In this chapter different methods to solve object search and delivery tasks are presented. The agent has to perform a search and delivery task in a closed environment involving multiple items and with prior uncertain knowledge about the items location. First, a more formal problem definition is given in \ref{sec:problemdef} and the underlying assumptions are discussed. In section \ref{sec:baseline} a greedy next-best-view algorithm is described which serves as the baseline for the POMDP agents. Section \ref{sec:POMDPagent} covers the POMDP agent and the underlying system architecture. Finally, in section \ref{sec:Multi-Scale} a novel Multi-Scale POMDP solving method is presented. The original POMDP structure is split into multiple POMDP problems with different spatial-resolutions. The problem is first solved in the lowest resolution POMDP and its solution is then refined in the successive POMDPs. This approach yields large computational speedups while producing qualitative solutions.  
 
 \section{Problem Definition}\label{sec:problemdef}
 \textit{Problem statement:} 
@@ -11,9 +11,40 @@ At first glance the above assumptions may seem too restricting for a real-world 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Baseline Agent}\label{sec:baseline}
+The baseline agent uses a greedy next-best-view strategy to explore the environment. If the agent observes an item it picks it up and delivers it to its target location. Afterwards the next-best-view exploration is continued. Note that this section uses the same notation as Basilico and Amigoni \cite{Basilico2011}.\\
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\subsection{Extensions}
+The next agent configuration $p=\begin{pmatrix}p_x & p_y & p_\theta\end{pmatrix}^\intercal$ is selected from a set of candidate configurations. The agent uses a high-resolution grid of the environment where each cell value takes either the value \texttt{observed} or \texttt{unobserved}. The candidate configurations are given by the \textit{frontier cells} of the grid. A frontier cell is a cell that takes the value \texttt{unobserved} and is in the 8-neighbourhood of an \texttt{observed} cell. For each frontier cell the eight configuration orientations $\theta\in \{\ang{0}, \ang{45}, \ang{90}, \ang{135}, \ang{180}, \ang{225}, \ang{270}, \ang{315} \}$ are considered. See figure \textcolor{red}{FIGREF HERE} for a visualisation. \\
+
+For each candidate configuration $p^c$ the expected time to transition to $p^c$ and the expected information gain at $p^c$ is considered. The expected time $\Delta t$ to transition from the current configuration $p^0$ to $p^c$ is computed by the heuristic:
+%
+\begin{equation}
+    \Delta t = \frac{\theta_{c,0}}{\omega_\text{robot}} +    \frac{\sqrt{(p^c_x - p^0_x)^2 + (p^c_y - p^0_y)^2}}{v_\text{robot}} + \frac{p^c_\theta - \theta_{c,0}}{\omega_\text{robot}}
+\end{equation}
+%
+where $v_\text{robot}$ is the agent's speed and $\omega_\text{robot}$ the angular speed. The value $\theta_{c,0}$ which is depicted in figure \textcolor{red}{FIGREF HERE} describes the angle difference between the current configuration orientation $p_\theta^0$ and the orientation pointing towards the candidate cell. The expected transition time is encoded in the time-utility $u_{\Delta t}$ as follows:
+%
+\begin{equation}
+    u_{\Delta t} = 1 - \frac{\Delta t - \Delta t_{\text{min}}}{\Delta t_\text{max}-\Delta t_\text{min}}, \quad u_{\Delta_t}\in [0, 1]
+\end{equation}
+where $\Delta t_\text{min}, \Delta t_\text{max}$ is the minimum respectively the maximum $\Delta t$ value of all the candidate configurations. Note that $u_{\Delta t}$ takes values in range $[0, 1]$, where $1$ corresponds to the closest configuration and $0$ to the furthest.\\
+
+The expected information gain $A$ is given as the expected newly observed area at candidate configuration $p^c$. It is calculated through simulating the viewing cone of the camera in $p^c$. Instead of actually computing the area, the \texttt{unobserved} cells within the simulated viewing cone are counted. The area-utility $u_A$ is given by:
+\begin{equation}
+     u_A = \frac{A-A_{\text{min}}}{A_\text{max}-A_\text{min}}, \quad u_A \in [0, 1]
+\end{equation}
+where $A_\text{min}, A_\text{max}$ is the minimum respectively the maximum $A$ value of all the candidate configurations. The overall utility of candidate cell $p^c$ is given by a weighted average of $u_A$ and $u_{\Delta t}$:
+%
+\begin{equation}
+    f\left( u_A, u_{\Delta t} \right) = \omega_A u_A + \omega_{\Delta t}u_{\Delta t}.
+\end{equation}
+%
+The next agent configuration is chosen as the candidate configuration which maximises the overall utility:
+\begin{equation}
+    p_\text{target} = \argmax_{p\in \text{candidates}}f\left( u_A, u_{\Delta t} \right).
+\end{equation}
+
+Next-best-view methods are commonly used for exploring unknown environments \cite{5753498, 7487281, Basilico2011}. The method presented does not consider the initial belief distribution over the items nor can it reason which item should be delivered first. The baseline method is therefore not perfectly suited for an object search and delivery task and takes on average longer to complete a delivery than the POMDP agent discussed in the next section.   
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -73,7 +104,7 @@ where $\mathcal{C}_\text{obs}$ is the set of observed cell since the last belief
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{POMDP Model}\label{subsec:POMDPmodel}
-In this section the POMDP model defined by the tuple $P = \langle \mathcal{S}, \mathcal{A}, \mathcal{O}, T, Z, R, b_0, \gamma \rangle$ is adapted from Van den Hof[\textcolor{red}{REF}] and Mendes[\textcolor{red}{REF}] for a search and delivery task involving $m$ items. The environment is divided into $N$ separate non-overlapping regions which from now on are referred to as \textit{nodes}. In figure \ref{subfig:nodes} a small office environment with 3 rooms is showed which got partitioned into $N=9$ nodes $n_0$ to $n_8$. Nodes can have any shape and do not need to be rectangles.
+In this section the POMDP model defined by the tuple $P = \langle \mathcal{S}, \mathcal{A}, \mathcal{O}, T, Z, R, b_0, \gamma \rangle$ is adapted from Van den Hof \cite{Vandenhof} and Mendes \cite{Mendes11} for a search and delivery task involving $m$ items. The environment is divided into $N$ separate non-overlapping regions which from now on are referred to as \textit{nodes}. In figure \ref{subfig:nodes} a small office environment with 3 rooms is showed which got partitioned into $N=9$ nodes $n_0$ to $n_8$. Nodes can have any shape and do not need to be rectangles.
 \begin{figure}
     \centering
     \begin{subfigure}[b]{0.48\textwidth}
@@ -364,7 +395,7 @@ where \texttt{b\_max} and \texttt{b\_max\_0} are the max belief value of any ite
 
 The purpose of the \texttt{look\_around} subroutine is to discover items in the current node. A next-best-view method similar to the baseline method (section \ref{sec:baseline}) can be used for this search task. The utilities are $u_{\Delta t}$ which corresponds to the expected time to transfer to the target pose $p$ and $u_b$  which considers the summed belief the agent expects to observe at $p$:
 \begin{equation}
-p_\text{target} = \argmin_{p\in \text{candidates}} f\left(u_{\Delta t}(p), u_b(p)\right).
+p_\text{target} = \argmax_{p\in \text{candidates}} f\left(u_{\Delta t}(p), u_b(p)\right).
 \end{equation}
 As in the baseline method, a new target pose is chosen once the current is reached. The subroutine terminates if more than ninety per cent of the node area was observed, if the maximum belief increased, which indicates that an item was discovered or if the belief peak of the node is reduced strongly enough. The later considers the difference between the highest belief values and the median belief value of the current node and its change since the start of the action. \\
 
@@ -406,17 +437,17 @@ The simplification that only one item of each type is present is restricting for
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\section{Multi-Scale POMDP Agents}\label{sec:MultiScale}
+\section{Multi-Scale POMDP Agents}\label{sec:Multi-Scale}
 POMDPs are computationally intractable to solve for large problems. As is shown in chapter \ref{sec:results} the POMDP agent is unable to solve a one item task in a large office environment within reasonable time. In this section a novel hierarchical POMDP framework is presented which greatly reduces computation times. The original POMDP problem is split into multiple smaller problems with different spatial resolutions. First the top layer with a coarse resolution is solved and its proposed action is then refined. The lowest layer of the hierarchy corresponds to the original POMDP problem.\\
-In section \ref{subsec:MultiScale_overview} the hierarchical framework is explained and in section \ref{sec:M1toM3} three different methods to combine the spatial layers are presented. Section \ref{subsec:MultiScale_properties} discusses properties of the MultiScale methods regarding solution quality and scaling. 
+In section \ref{subsec:Multi-Scale_overview} the hierarchical framework is explained and in section \ref{sec:M1toM3} three different methods to combine the spatial layers are presented. Section \ref{subsec:Multi-Scale_properties} discusses properties of the Multi-Scale methods regarding solution quality and scaling. 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\subsection{Overview} \label{subsec:MultiScale_overview}
-MultiScale methods first solve the top layer $l0$ which yields the value function $V(b^{l0})$ and the first action to execute $a^{l0}$. The superscript $li$ indicates that the variable belongs to layer $i$. Next, layer 1 is solved and afterwards layer 2 and so on. On the lower layers only a subset of the state, observation and action space is considered, determined by the action and state of the layer above. The MultiScale methods presented do not compute the entire solution beforehand but only the next action to execute. In the following the hierarchical layout is shown in more detail and then the higher layer transition, reward and observation models are derivated.
+\subsection{Overview} \label{subsec:Multi-Scale_overview}
+Multi-Scale methods first solve the top layer $l0$ which yields the value function $V(b^{l0})$ and the first action to execute $a^{l0}$. The superscript $li$ indicates that the variable belongs to layer $i$. Next, layer 1 is solved and afterwards layer 2 and so on. On the lower layers only a subset of the state, observation and action space is considered, determined by the action and state of the layer above. The Multi-Scale methods presented do not compute the entire solution beforehand but only the next action to execute. In the following the hierarchical layout is shown in more detail and then the higher layer transition, reward and observation models are derivated.
 %%%%%%%%%%%%%%%%
 
 \subsubsection{Hierarchical Layout}
-The MultiScale POMDP arranges the environment into multiple layers with different levels of discretisation. In figure \ref{fig:two_layers} the three room environment is shown with two spatial layers. Each node of layer 1 can be mapped to only one node of layer 0. The node-layout is chosen manually for the examples of this thesis. 
+The Multi-Scale POMDP arranges the environment into multiple layers with different levels of discretisation. In figure \ref{fig:two_layers} the three room environment is shown with two spatial layers. Each node of layer 1 can be mapped to only one node of layer 0. The node-layout is chosen manually for the examples of this thesis. 
 \begin{figure}
     \centering
     \begin{subfigure}[b]{0.48\textwidth}
@@ -570,7 +601,7 @@ For a more general setup the expected probability of observing item $k$ in $n_i^
     \end{aligned}
 \end{equation}
 
-Instead of using open-loop policies one could also use closed-loop policies on states $\pi(s)$. This corresponds to the option/macro-action model for MDPs described in \textcolor{red}{[ref][ref]}. It is also possible to use closed-loop policies on beliefs. Those would however be difficult to construct by hand and should be automatically constructed as is described in \textcolor{red}{[ref]}.
+Instead of using open-loop policies one could also use closed-loop policies on states $\pi(s)$. This corresponds to the option/macro-action model for MDPs \cite{SUTTON1999181, DBLP:journals/corr/abs-1301-7381}. It is also possible to use automatically constructed closed-loop policies on beliefs \cite{7140035}.
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -718,7 +749,7 @@ Similarly, the terminal state reward for the second terminal state $s_{t,2}$ is 
 \begin{equation}\label{eq:Vpi2}
 V^{\pi_2}=r_\text{time}\left( x_a^{l0}=n_1^{l1}, a=\texttt{nav($n_1^{l1}, n_9^{l1}$)} \right) + \gamma \cdot r_{\text{terminal,}2}.
 \end{equation}
-If $V^{\pi_2}$ is larger than $V^{\pi_1}$ the agent drives to node $n_9^{l1}$ instead of picking the item up. In the next move the agent will then drive back to node $n_1^{l1}$ as the item is within node $n_0^{l0}$. Thus, the initial situation is restored and the process starts over. The reason that $V^{\pi_2}$ could mistakenly be larger than $V^{\pi_1}$ is that $r_{\text{terminal},2}$ is given by the value function of layer 0. The value function at $x_a^{l0}=n_2^{l0}$ reflects that the agent is going to navigate from $n_2^{l0}$ to $n_0^{l2}$ in the next move and is then going to grab the item. Layer 0 uses estimated reward functions created by averaging rewards of layer 1 as explained in section \ref{subsec:MultiScale_overview}. Since the item is far away from the agent the actual value function for picking the item up is smaller than layer 0 estimated. This makes the terminal state at $n_9^{l1}$ which can be reached with only small time penalty more attractive. In real scenarios such instability problems mostly occur if the problem has a broad belief distribution. For such cases the upper layer reward models are overconfident as they were created assuming simple open-loop policies.   
+If $V^{\pi_2}$ is larger than $V^{\pi_1}$ the agent drives to node $n_9^{l1}$ instead of picking the item up. In the next move the agent will then drive back to node $n_1^{l1}$ as the item is within node $n_0^{l0}$. Thus, the initial situation is restored and the process starts over. The reason that $V^{\pi_2}$ could mistakenly be larger than $V^{\pi_1}$ is that $r_{\text{terminal},2}$ is given by the value function of layer 0. The value function at $x_a^{l0}=n_2^{l0}$ reflects that the agent is going to navigate from $n_2^{l0}$ to $n_0^{l2}$ in the next move and is then going to grab the item. Layer 0 uses estimated reward functions created by averaging rewards of layer 1 as explained in section \ref{subsec:Multi-Scale_overview}. Since the item is far away from the agent the actual value function for picking the item up is smaller than layer 0 estimated. This makes the terminal state at $n_9^{l1}$ which can be reached with only small time penalty more attractive. In real scenarios such instability problems mostly occur if the problem has a broad belief distribution. For such cases the upper layer reward models are overconfident as they were created assuming simple open-loop policies.   
 
 \begin{figure}
     \centering
@@ -728,8 +759,8 @@ If $V^{\pi_2}$ is larger than $V^{\pi_1}$ the agent drives to node $n_9^{l1}$ in
 \end{figure}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-\subsection{Properties}\label{subsec:MultiScale_properties}
-A qualitative comparison of some of the properties of the different MultiScale methods and the flat POMDP agent (section \ref{sec:POMDPagent}) are summarized in table \ref{tab:properties}.  The MultiScale methods split one large POMDP into multiple smaller POMDPs. With the hierarchical layout from figure \ref{fig:bigenv_3layers} where each node in is split into 4 subnodes on the next lower layer a logarithmic relationship between the number of nodes in the flat problem and the number of layers in the hierarchy is given:
+\subsection{Properties}\label{subsec:Multi-Scale_properties}
+A qualitative comparison of some of the properties of the different Multi-Scale methods and the flat POMDP agent (section \ref{sec:POMDPagent}) are summarized in table \ref{tab:properties}.  The Multi-Scale methods split one large POMDP into multiple smaller POMDPs. With the hierarchical layout from figure \ref{fig:bigenv_3layers} where each node in is split into 4 subnodes on the next lower layer a logarithmic relationship between the number of nodes in the flat problem and the number of layers in the hierarchy is given:
 \begin{equation}
     N_\text{layers} \sim \log_4 N_\text{nodes}.
 \end{equation}
@@ -755,10 +786,10 @@ This is a nice scaling property as the number of layers is proportional\footnote
     \caption{Qualitative comparison of the different POMDP agents.}
     \label{tab:properties}
 \end{table}
-In general, all MultiScale methods create suboptimal solutions due to discretisation inaccuracies. A demonstration is depicted in figure \ref{fig:suboptimal} where the task involves two items in the three room environment. Both items are within the same layer 0 node $n_0^{l0}$ and both goal-locations are in $n_2^{l0}$. Layer 0 is unable to differentiate the two items regarding expected delivery time and randomly chooses either the \texttt{pickup}1 or \texttt{pickup}2 action first. Layer 1 is guided through the layer 0 action $a^{l0}$ and value function $V(b^{l0})$. Neither reflects that the pink item's goal location is closer and should therefore be delivered first. The MultiScale agents can therefore not correctly reason which item to deliver first. The flat POMDP delivers the pink item first as the initial positions and goal locations of the two items are in different nodes. 
+In general, all Multi-Scale methods create suboptimal solutions due to discretisation inaccuracies. A demonstration is depicted in figure \ref{fig:suboptimal} where the task involves two items in the three room environment. Both items are within the same layer 0 node $n_0^{l0}$ and both goal-locations are in $n_2^{l0}$. Layer 0 is unable to differentiate the two items regarding expected delivery time and randomly chooses either the \texttt{pickup}1 or \texttt{pickup}2 action first. Layer 1 is guided through the layer 0 action $a^{l0}$ and value function $V(b^{l0})$. Neither reflects that the pink item's goal location is closer and should therefore be delivered first. The Multi-Scale agents can therefore not correctly reason which item to deliver first. The flat POMDP delivers the pink item first as the initial positions and goal locations of the two items are in different nodes. 
 \begin{figure}
     \centering
     \includegraphics[width=0.5\textwidth]{Report/images/suboptimal.png}
-    \caption{A scenario where the MultiScale methods are not able to correctly reason which item should be delivered first.}
+    \caption{A scenario where the Multi-Scale methods are not able to correctly reason which item should be delivered first.}
     \label{fig:suboptimal}
 \end{figure}
