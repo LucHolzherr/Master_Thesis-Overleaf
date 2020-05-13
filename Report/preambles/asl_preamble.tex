@@ -116,7 +116,8 @@
 \newcommand\demo{\xqed{$\square$}}
 
 % self made command
-\newcommand{\SubNode}{\mathit{Subnodes}}
+%\newcommand{\SubNode}{\mathit{Subnodes}}
+\newcommand{\SubNode}{\mathcal{N}}
 
 % Algorithms
 \usepackage[boxed, ruled,]{algorithm2e}
@@ -125,3 +126,12 @@
 \SetCommentSty{mycommfont}
 
 \usepackage{hyperref}
+
+% added by me for repeated captions of figure
+\newcommand{\repeatcaption}[2]{%
+  \renewcommand{\thefigure}{\ref{#1}}%
+  \captionsetup{list=no}%
+  \caption{#2 (continued from page \pageref{#1})}%
+}
+
+\usepackage{float}

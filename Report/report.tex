@@ -76,10 +76,17 @@
 %\cleardoublepage
 \input{chapters/abstract}
 \cleardoublepage
-\input{chapters/symbols}
-\cleardoublepage
 \input{chapters/acknowledgement}
 \cleardoublepage
+\listoffigures
+\addcontentsline{toc}{chapter}{\listfigurename}
+\cleardoublepage
+\listoftables
+\addcontentsline{toc}{chapter}{\listtablename}
+\cleardoublepage
+% \input{chapters/symbols}
+% \cleardoublepage
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Chapters custom
@@ -88,16 +95,16 @@
 \pagenumbering{arabic}
 
 % TODO Add your own chapters here
-%\input{Report/chapters/introduction}
-%\cleardoublepage
-%\input{Report/chapters/probabilistic_reasoning}
-%\cleardoublepage
+\input{Report/chapters/introduction}
+\cleardoublepage
+\input{Report/chapters/probabilistic_reasoning}
+\cleardoublepage
 \input{Report/chapters/object_search}
-%\cleardoublepage
-%\input{Report/chapters/results}
-%\cleardoublepage
-%\input{Report/chapters/conclusion}
-%\cleardoublepage
+\cleardoublepage
+\input{Report/chapters/results}
+\cleardoublepage
+\input{Report/chapters/conclusion}
+\cleardoublepage
 % \input{}
 % \cleardoublepage
 % \input{}
@@ -116,8 +123,8 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Appendix
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\appendix
-\input{chapters/appendix_text}
+%\appendix
+%\input{chapters/appendix_text}
 %\cleardoublepage
 %\input{chapters/appendix_datasheets}
 
